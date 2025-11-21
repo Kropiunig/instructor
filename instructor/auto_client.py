@@ -394,8 +394,17 @@ def from_provider(
         try:
             import google.genai as genai
             from instructor import from_genai  # type: ignore[attr-defined]
-            import os
+        except ImportError as exc:
+            from .core.exceptions import ConfigurationError
 
+            raise ConfigurationError(
+                "The google-genai package is required to use the Google provider. "
+                "Install it with `pip install google-genai`."
+            ) from exc
+
+        import os
+
+        try:
             # Remove vertexai from kwargs if present to avoid passing it twice
             vertexai_flag = kwargs.pop("vertexai", False)
 
@@ -439,13 +448,6 @@ def from_provider(
                 extra={**provider_info, "status": "success"},
             )
             return result
-        except ImportError:
-            from .core.exceptions import ConfigurationError
-
-            raise ConfigurationError(
-                "The google-genai package is required to use the Google provider. "
-                "Install it with `pip install google-genai`."
-            ) from None
         except Exception as e:
             logger.error(
                 "Error initializing %s client: %s",
@@ -796,8 +798,17 @@ def from_provider(
         try:
             import google.genai as genai  # type: ignore
             from instructor import from_genai  # type: ignore[attr-defined]
-            import os
+        except ImportError as exc:
+            from .core.exceptions import ConfigurationError
 
+            raise ConfigurationError(
+                "The google-genai package is required to use the VertexAI provider. "
+                "Install it with `pip install google-genai`."
+            ) from exc
+
+        import os
+
+        try:
             # Get project and location from kwargs or environment
             project = kwargs.pop("project", os.environ.get("GOOGLE_CLOUD_PROJECT"))
             location = kwargs.pop(
@@ -834,13 +845,6 @@ def from_provider(
                 extra={**provider_info, "status": "success"},
             )
             return result
-        except ImportError:
-            from .core.exceptions import ConfigurationError
-
-            raise ConfigurationError(
-                "The google-genai package is required to use the VertexAI provider. "
-                "Install it with `pip install google-genai`."
-            ) from None
         except Exception as e:
             logger.error(
                 "Error initializing %s client: %s",
@@ -861,8 +865,17 @@ def from_provider(
         try:
             from google import genai
             from instructor import from_genai  # type: ignore[attr-defined]
-            import os
+        except ImportError as exc:
+            from .core.exceptions import ConfigurationError
 
+            raise ConfigurationError(
+                "The google-genai package is required to use the Google GenAI provider. "
+                "Install it with `pip install google-genai`."
+            ) from exc
+
+        import os
+
+        try:
             # Get API key from kwargs or environment
             api_key = api_key or os.environ.get("GOOGLE_API_KEY")
 
@@ -887,13 +900,6 @@ def from_provider(
                 extra={**provider_info, "status": "success"},
             )
             return result
-        except ImportError:
-            from .core.exceptions import ConfigurationError
-
-            raise ConfigurationError(
-                "The google-genai package is required to use the Google GenAI provider. "
-                "Install it with `pip install google-genai`."
-            ) from None
         except Exception as e:
             logger.error(
                 "Error initializing %s client: %s",
