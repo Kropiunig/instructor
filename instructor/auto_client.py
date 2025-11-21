@@ -38,6 +38,28 @@ supported_providers = [
 ]
 
 
+def _is_missing_dependency(exc: ImportError, modules: tuple[str, ...]) -> bool:
+    """Return True if ImportError indicates one of the target modules is missing."""
+
+    missing_name = getattr(exc, "name", None)
+    if missing_name:
+        for module in modules:
+            if missing_name == module or missing_name.startswith(f"{module}."):
+                return True
+
+    message = str(exc).lower()
+    if not message:
+        return False
+
+    for module in modules:
+        module_lower = module.lower()
+        if module_lower in message and (
+            "no module named" in message or "cannot import" in message
+        ):
+            return True
+    return False
+
+
 @overload
 def from_provider(
     model: KnownModelName,
@@ -395,6 +417,8 @@ def from_provider(
             import google.genai as genai
             from instructor import from_genai  # type: ignore[attr-defined]
         except ImportError as exc:
+            if not _is_missing_dependency(exc, ("google.genai", "google")):
+                raise
             from .core.exceptions import ConfigurationError
 
             raise ConfigurationError(
@@ -799,6 +823,8 @@ def from_provider(
             import google.genai as genai  # type: ignore
             from instructor import from_genai  # type: ignore[attr-defined]
         except ImportError as exc:
+            if not _is_missing_dependency(exc, ("google.genai", "google")):
+                raise
             from .core.exceptions import ConfigurationError
 
             raise ConfigurationError(
@@ -866,6 +892,8 @@ def from_provider(
             from google import genai
             from instructor import from_genai  # type: ignore[attr-defined]
         except ImportError as exc:
+            if not _is_missing_dependency(exc, ("google.genai", "google")):
+                raise
             from .core.exceptions import ConfigurationError
 
             raise ConfigurationError(
