@@ -393,9 +393,20 @@ def from_provider(
             raise
 
     elif provider == "google":
+        # Import dependencies - only catch ImportError for these specific imports
         try:
             import google.genai as genai
             from instructor import from_genai  # type: ignore[attr-defined]
+        except ImportError as e:
+            from .core.exceptions import ConfigurationError
+
+            raise ConfigurationError(
+                "The google-genai package is required to use the Google provider. "
+                "Install it with `pip install google-genai`."
+            ) from e
+
+        # Client initialization - let any errors propagate with full context
+        try:
             import os
 
             # Remove vertexai from kwargs if present to avoid passing it twice
@@ -441,13 +452,6 @@ def from_provider(
                 extra={**provider_info, "status": "success"},
             )
             return result
-        except ImportError:
-            from .core.exceptions import ConfigurationError
-
-            raise ConfigurationError(
-                "The google-genai package is required to use the Google provider. "
-                "Install it with `pip install google-genai`."
-            ) from None
         except Exception as e:
             logger.error(
                 "Error initializing %s client: %s",
