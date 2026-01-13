@@ -144,6 +144,31 @@ def test_partial_handles_self_referential_models():
     assert validated.children[0].children[0].value == "leaf"
 
 
+def test_partial_recursive_model_streaming_flow():
+    class TreeNode(BaseModel):
+        value: str
+        children: Optional[list["TreeNode"]] = None
+
+    TreeNode.model_rebuild()
+
+    partial = Partial[TreeNode]
+
+    chunks = [
+        '{"value": "root", "children": [',
+        '{"value": "child", "children": [',
+        '{"value": "leaf"}]}]}',
+    ]
+
+    models = list(partial.model_from_chunks(chunks))
+    final = models[-1]
+
+    assert final.value == "root"
+    assert final.children
+    assert final.children[0].value == "child"
+    assert final.children[0].children
+    assert final.children[0].children[0].value == "leaf"
+
+
 @pytest.mark.asyncio
 async def test_async_partial_with_whitespace():
     partial = Partial[SamplePartial]
