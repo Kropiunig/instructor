@@ -17,6 +17,7 @@ from copy import deepcopy
 from functools import cache
 from typing import (
     Any,
+    ForwardRef,
     Generic,
     NoReturn,
     Optional,
@@ -40,6 +41,10 @@ if sys.version_info >= (3, 10):
     UNION_ORIGINS = (Union, types.UnionType)
 else:
     UNION_ORIGINS = (Union,)
+
+
+ProcessingKey = tuple[type[BaseModel], bool]
+_processing_partial_models: dict[ProcessingKey, str] = {}
 
 
 class MakeFieldsOptional:
@@ -84,6 +89,9 @@ def _process_generic_arg(
         return arg_origin[modified_nested_args]
     else:
         if isinstance(arg, type) and issubclass(arg, BaseModel):
+            key = (arg, make_fields_optional)
+            if model_name := _processing_partial_models.get(key):
+                return ForwardRef(model_name)
             return (
                 Partial[arg, MakeFieldsOptional]  # type: ignore[valid-type]
                 if make_fields_optional
@@ -783,6 +791,9 @@ class Partial(Generic[T_Model]):
         if isinstance(wrapped_class, tuple):
             wrapped_class, make_fields_optional = wrapped_class
 
+        make_fields_optional_flag = make_fields_optional is not None
+        processing_key = (wrapped_class, make_fields_optional_flag)
+
         def _wrap_models(field: FieldInfo) -> tuple[object, FieldInfo]:
             tmp_field = deepcopy(field)
 
@@ -812,16 +823,33 @@ class Partial(Generic[T_Model]):
             else f"Partial{wrapped_class.__name__}"
         )
 
-        return create_model(
-            model_name,
-            __base__=(wrapped_class, PartialBase),  # type: ignore
-            __module__=wrapped_class.__module__,
-            **{
-                field_name: (
-                    _make_field_optional(field_info)
-                    if make_fields_optional is not None
-                    else _wrap_models(field_info)
-                )
+        _processing_partial_models[processing_key] = model_name
+        try:
+            field_transform = (
+                _make_field_optional
+                if make_fields_optional is not None
+                else _wrap_models
+            )
+            field_definitions = {
+                field_name: field_transform(field_info)
                 for field_name, field_info in wrapped_class.model_fields.items()
-            },  # type: ignore
+            }
+            partial_model = create_model(
+                model_name,
+                __base__=(wrapped_class, PartialBase),  # type: ignore
+                __module__=wrapped_class.__module__,
+                **field_definitions,  # type: ignore
+            )
+        finally:
+            _processing_partial_models.pop(processing_key, None)
+
+        namespace = {}
+        parent_namespace = getattr(
+            wrapped_class, "__pydantic_parent_namespace__", None
         )
+        if parent_namespace:
+            namespace.update(parent_namespace)
+        namespace[model_name] = partial_model
+        partial_model.model_rebuild(_types_namespace=namespace)
+
+        return partial_model

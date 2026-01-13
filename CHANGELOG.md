@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
-<!-- Add upcoming changes here -->
+### Fixed
+- Stop `Partial[T]` from recursing forever on self-referential models (#1995)
 
 ## [1.14.1] - 2026-01-08
 

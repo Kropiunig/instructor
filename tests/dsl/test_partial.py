@@ -114,6 +114,36 @@ def test_partial_with_whitespace():
     assert len(models) == 2
 
 
+def test_partial_handles_self_referential_models():
+    class TreeNode(BaseModel):
+        value: str
+        children: Optional[list["TreeNode"]] = None
+
+    TreeNode.model_rebuild()
+
+    partial = Partial[TreeNode]
+    schema = partial.model_json_schema()
+
+    assert "PartialTreeNode" in schema["$defs"]
+
+    partial_model = partial.get_partial_model()
+    validated = partial_model.model_validate(
+        {
+            "value": "root",
+            "children": [
+                {
+                    "value": "child",
+                    "children": [{"value": "leaf"}],
+                }
+            ],
+        }
+    )
+
+    assert validated.children is not None
+    assert validated.children[0].value == "child"
+    assert validated.children[0].children[0].value == "leaf"
+
+
 @pytest.mark.asyncio
 async def test_async_partial_with_whitespace():
     partial = Partial[SamplePartial]
