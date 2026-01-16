@@ -304,31 +304,96 @@ def update_genai_kwargs(
             if val is not None:  # Only set if value is not None
                 base_config[gemini_key] = val
 
-    safety_settings = new_kwargs.pop("safety_settings", {})
-    base_config["safety_settings"] = []
+    def _messages_contain_image(messages: Any) -> bool:
+        """Best-effort check for image content in OpenAI-style messages."""
+        if not isinstance(messages, list):
+            return False
 
-    # Filter out image related harm categories which are not
-    # supported for text based models
-    # Exclude JAILBREAK category as it's only for Vertex AI, not google.genai
+        for message in messages:
+            if not isinstance(message, dict):
+                continue
+
+            content = message.get("content")
+            if not isinstance(content, list):
+                continue
+
+            for item in content:
+                if isinstance(item, Image):
+                    return True
+                if isinstance(item, dict):
+                    # OpenAI-style image blocks often look like:
+                    # {"type": "image_url", "image_url": {"url": "..."}}.
+                    item_type = item.get("type")
+                    if item_type in {"image_url", "input_image", "image"}:
+                        return True
+                    if "image_url" in item or "image" in item:
+                        return True
+
+        return False
+
+    raw_safety_settings = new_kwargs.pop("safety_settings", None)
+    user_safety_settings: dict[Any, Any] = {}
+
+    # Accept both dict form (category -> threshold) and list form
+    # (SafetySetting objects or {"category": ..., "threshold": ...} dicts).
+    if isinstance(raw_safety_settings, dict):
+        user_safety_settings = raw_safety_settings.copy()
+    elif isinstance(raw_safety_settings, list):
+        for item in raw_safety_settings:
+            if isinstance(item, dict):
+                category = item.get("category")
+                threshold = item.get("threshold")
+            else:
+                category = getattr(item, "category", None)
+                threshold = getattr(item, "threshold", None)
+            if category is not None and threshold is not None:
+                user_safety_settings[category] = threshold
+
+    # IMPORTANT: Do not auto-emit every HarmCategory enum member.
+    # The google-genai SDK can add new categories (e.g., CIVIC_INTEGRITY),
+    # and sending unsupported categories can cause 400 INVALID_ARGUMENT,
+    # especially for multimodal (image) requests.
+    DEFAULT_MIN_THRESHOLDS: dict[HarmCategory, HarmBlockThreshold] = {}
+    for name in (
+        "HARM_CATEGORY_HATE_SPEECH",
+        "HARM_CATEGORY_HARASSMENT",
+        "HARM_CATEGORY_DANGEROUS_CONTENT",
+    ):
+        category = getattr(HarmCategory, name, None)
+        if category is not None:
+            DEFAULT_MIN_THRESHOLDS[category] = HarmBlockThreshold.BLOCK_ONLY_HIGH
+
+    merged_settings: dict[HarmCategory, HarmBlockThreshold] = {}
+    for category, threshold in user_safety_settings.items():
+        if isinstance(category, HarmCategory) and isinstance(threshold, HarmBlockThreshold):
+            merged_settings[category] = threshold
+
+    # Enforce a minimum safety baseline unless the user requested something
+    # more restrictive (lower numeric values are more restrictive).
+    for category, min_threshold in DEFAULT_MIN_THRESHOLDS.items():
+        current = merged_settings.get(category)
+        if current is None or current > min_threshold:
+            merged_settings[category] = min_threshold
+
     excluded_categories = {HarmCategory.HARM_CATEGORY_UNSPECIFIED}
     if hasattr(HarmCategory, "HARM_CATEGORY_JAILBREAK"):
         excluded_categories.add(HarmCategory.HARM_CATEGORY_JAILBREAK)
 
-    supported_categories = [
-        c
-        for c in HarmCategory
-        if c not in excluded_categories
-        and not c.name.startswith("HARM_CATEGORY_IMAGE_")
-    ]
+    has_image = _messages_contain_image(new_kwargs.get("messages", []))
 
-    for category in supported_categories:
-        threshold = safety_settings.get(category, HarmBlockThreshold.OFF)
-        base_config["safety_settings"].append(
-            {
-                "category": category,
-                "threshold": threshold,
-            }
+    filtered_settings: dict[HarmCategory, HarmBlockThreshold] = {
+        category: threshold
+        for category, threshold in merged_settings.items()
+        if category not in excluded_categories
+        and (has_image or not category.name.startswith("HARM_CATEGORY_IMAGE_"))
+    }
+
+    base_config["safety_settings"] = [
+        {"category": category, "threshold": threshold}
+        for category, threshold in sorted(
+            filtered_settings.items(), key=lambda kv: kv[0].name
         )
+    ]
 
     # Extract thinking_config from user's config object if provided
     # This ensures thinking_config inside config parameter is not ignored
