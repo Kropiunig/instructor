@@ -133,7 +133,9 @@ def _looks_like_json(value: str) -> bool:
     s = value.strip()
     if not s:
         return False
-    return (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]"))
+    return (s.startswith("{") and s.endswith("}")) or (
+        s.startswith("[") and s.endswith("]")
+    )
 
 
 def _try_json_loads(value: str) -> Any | None:
@@ -152,7 +154,9 @@ def _unwrap_annotated(tp: Any) -> Any:
     return tp
 
 
-def _coerce_value_to_expected_type(expected_type: Any, value: Any, *, depth: int) -> Any:
+def _coerce_value_to_expected_type(
+    expected_type: Any, value: Any, *, depth: int
+) -> Any:
     """
     Coerce nested JSON strings into real Python objects based on expected type.
 
@@ -183,7 +187,9 @@ def _coerce_value_to_expected_type(expected_type: Any, value: Any, *, depth: int
         if isinstance(value, str):
             loaded = _try_json_loads(value)
             if isinstance(loaded, dict):
-                return _coerce_nested_json_strings(expected_type, loaded, depth=depth - 1)
+                return _coerce_nested_json_strings(
+                    expected_type, loaded, depth=depth - 1
+                )
             return value
         if isinstance(value, dict):
             return _coerce_nested_json_strings(expected_type, value, depth=depth - 1)

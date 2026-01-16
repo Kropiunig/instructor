@@ -387,7 +387,9 @@ def test_openrouter_gemini_nested_objects_as_json_strings_are_coerced() -> None:
         ],
     )
 
-    user = cast(Any, User.from_response(completion, mode=instructor.Mode.TOOLS, strict=True))
+    user = cast(
+        Any, User.from_response(completion, mode=instructor.Mode.TOOLS, strict=True)
+    )
     assert user.name == "Jason"
     assert user.age == 25
     assert user.address.street == "123 Main St"
