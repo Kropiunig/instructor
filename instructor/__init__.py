@@ -1,4 +1,5 @@
 import importlib.util
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
 from .mode import Mode
 from .processing.multimodal import Image, Audio
@@ -34,7 +35,14 @@ from .distil import FinetuneFormat, Instructions
 from .processing.response import handle_response_model
 from .dsl.parallel import handle_parallel_model
 
+try:
+    __version__ = _pkg_version("instructor")
+except PackageNotFoundError:  # pragma: no cover
+    # Fallback for editable/checkouts where package metadata isn't available.
+    __version__ = "1.14.4"
+
 __all__ = [
+    "__version__",
     "Instructor",
     "Image",
     "Audio",
