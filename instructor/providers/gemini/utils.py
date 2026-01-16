@@ -285,6 +285,30 @@ def update_genai_kwargs(
 
     new_kwargs = kwargs.copy()
 
+    def _is_image_harm_category(category: Any) -> bool:
+        """Return True if this HarmCategory is an IMAGE_* category.
+
+        Google GenAI exposes both text and image harm categories, but the public
+        `generateContent` endpoint rejects IMAGE_* categories in `safety_settings`
+        for many models/requests (returns 400 INVALID_ARGUMENT). We defensively
+        filter them out even if enum representations differ across SDK versions.
+        """
+
+        # Enum-style categories (most common)
+        name = getattr(category, "name", None)
+        if isinstance(name, str) and name.startswith("HARM_CATEGORY_IMAGE_"):
+            return True
+
+        value = getattr(category, "value", None)
+        if isinstance(value, str) and value.startswith("HARM_CATEGORY_IMAGE_"):
+            return True
+
+        # Fallbacks: strings, protobuf wrappers, etc.
+        if isinstance(category, str) and category.startswith("HARM_CATEGORY_IMAGE_"):
+            return True
+
+        return "HARM_CATEGORY_IMAGE_" in str(category)
+
     OPENAI_TO_GEMINI_MAP = {
         "max_tokens": "max_output_tokens",
         "temperature": "temperature",
@@ -307,9 +331,9 @@ def update_genai_kwargs(
     safety_settings = new_kwargs.pop("safety_settings", {})
     base_config["safety_settings"] = []
 
-    # Filter out image related harm categories which are not
-    # supported for text based models
-    # Exclude JAILBREAK category as it's only for Vertex AI, not google.genai
+    # Exclude categories that Google GenAI rejects (or that don't apply).
+    # - IMAGE_* categories: rejected by many models/requests (issue #1773)
+    # - JAILBREAK: Vertex AI only, not google.genai
     excluded_categories = {HarmCategory.HARM_CATEGORY_UNSPECIFIED}
     if hasattr(HarmCategory, "HARM_CATEGORY_JAILBREAK"):
         excluded_categories.add(HarmCategory.HARM_CATEGORY_JAILBREAK)
@@ -318,10 +342,13 @@ def update_genai_kwargs(
         c
         for c in HarmCategory
         if c not in excluded_categories
-        and not c.name.startswith("HARM_CATEGORY_IMAGE_")
+        and not _is_image_harm_category(c)
     ]
 
     for category in supported_categories:
+        # Double-check filtering so IMAGE_* categories never slip through.
+        if _is_image_harm_category(category):
+            continue
         threshold = safety_settings.get(category, HarmBlockThreshold.OFF)
         base_config["safety_settings"].append(
             {
