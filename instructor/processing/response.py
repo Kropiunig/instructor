@@ -50,6 +50,7 @@ from ..dsl.iterable import IterableBase
 from ..dsl.parallel import ParallelBase
 from ..dsl.partial import PartialBase
 from ..dsl.simple_type import AdapterBase
+from ..dsl.response_list import ListResponse
 
 if TYPE_CHECKING:
     from .function_calls import OpenAISchema
@@ -248,11 +249,14 @@ async def process_response_async(
     # ? attaching usage data and the raw response to the model we return.
     if isinstance(model, IterableBase):
         logger.debug(f"Returning takes from IterableBase")
-        return [task for task in model.tasks]  # type: ignore
+        return ListResponse.from_list(  # type: ignore[return-value]
+            [task for task in model.tasks],  # type: ignore[attr-defined]
+            raw_response=response,
+        )
 
     if isinstance(response_model, ParallelBase):
         logger.debug(f"Returning model from ParallelBase")
-        return model
+        return ListResponse.from_list(list(model), raw_response=response)  # type: ignore[return-value,arg-type]
 
     if isinstance(model, AdapterBase):
         logger.debug(f"Returning model from AdapterBase")
@@ -353,11 +357,14 @@ def process_response(
     # ? attaching usage data and the raw response to the model we return.
     if isinstance(model, IterableBase):
         logger.debug(f"Returning takes from IterableBase")
-        return [task for task in model.tasks]  # type: ignore
+        return ListResponse.from_list(  # type: ignore[return-value]
+            [task for task in model.tasks],  # type: ignore[attr-defined]
+            raw_response=response,
+        )
 
     if isinstance(response_model, ParallelBase):
         logger.debug(f"Returning model from ParallelBase")
-        return model
+        return ListResponse.from_list(list(model), raw_response=response)  # type: ignore[return-value,arg-type]
 
     if isinstance(model, AdapterBase):
         logger.debug(f"Returning model from AdapterBase")
