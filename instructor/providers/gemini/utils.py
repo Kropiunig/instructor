@@ -351,7 +351,11 @@ def update_genai_kwargs(
     # This ensures fields like automatic_function_calling / labels / cached_content
     # are not ignored when config is passed as a dict.
     if user_config is not None:
-        config_fields_to_merge = ["automatic_function_calling", "labels", "cached_content"]
+        config_fields_to_merge = [
+            "automatic_function_calling",
+            "labels",
+            "cached_content",
+        ]
         for field in config_fields_to_merge:
             if isinstance(user_config, dict):
                 field_value = user_config.get(field)
