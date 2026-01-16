@@ -453,6 +453,27 @@ def double_retry_extraction(text: str) -> UserInfo:
     )
 ```
 
+## Truncation Handling
+
+When a response is cut off by max tokens, you can stop retries or auto-ramp the
+token limit.
+
+```python
+result = client.create(
+    response_model=UserInfo,
+    messages=[{"role": "user", "content": "Extract details"}],
+    max_tokens=300,
+    failfast_on_truncation=True,
+)
+
+result = client.create(
+    response_model=UserInfo,
+    messages=[{"role": "user", "content": "Extract details"}],
+    max_tokens=300,
+    max_tokens_auto_ramp={"multiplier": 1.5, "cap": 1200, "max_attempts": 2},
+)
+```
+
 ## Failed Attempts Tracking
 
 Instructor's retry system now tracks all failed attempts with detailed context for better debugging and error handling.

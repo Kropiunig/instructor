@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import logging
+import math
 from json import JSONDecodeError
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, NamedTuple, TypeVar, TypedDict
 
 from .exceptions import (
-    InstructorRetryException,
     AsyncValidationError,
+    ConfigurationError,
     FailedAttempt,
+    IncompleteOutputException,
+    InstructorRetryException,
     ValidationError as InstructorValidationError,
 )
 from .hooks import Hooks
@@ -31,6 +34,7 @@ from tenacity import (
     AsyncRetrying,
     RetryError,
     Retrying,
+    retry_if_exception,
     stop_after_attempt,
     stop_after_delay,
 )
@@ -45,10 +49,196 @@ T_ParamSpec = ParamSpec("T_ParamSpec")
 T = TypeVar("T")
 
 
+class MaxTokensAutoRampConfig(TypedDict, total=False):
+    """Configuration for auto-ramping max tokens on truncation."""
+
+    multiplier: float
+    cap: int | None
+    max_attempts: int
+
+
+class _ResolvedMaxTokensAutoRamp(NamedTuple):
+    multiplier: float
+    cap: int | None
+    max_attempts: int
+
+
+def _is_positive_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _resolve_max_tokens_auto_ramp(
+    config: MaxTokensAutoRampConfig | bool | None,
+) -> _ResolvedMaxTokensAutoRamp | None:
+    if config is None or config is False:
+        return None
+    if config is True:
+        config = {}
+    if not isinstance(config, dict):
+        raise ConfigurationError(
+            "max_tokens_auto_ramp must be a dict, True, or None."
+        )
+
+    multiplier = config.get("multiplier", 1.5)
+    cap = config.get("cap")
+    max_attempts = config.get("max_attempts", 1)
+
+    if isinstance(multiplier, bool) or not isinstance(multiplier, (int, float)):
+        raise ConfigurationError(
+            "max_tokens_auto_ramp.multiplier must be a number greater than 1."
+        )
+    if multiplier <= 1:
+        raise ConfigurationError(
+            "max_tokens_auto_ramp.multiplier must be greater than 1."
+        )
+    if not _is_positive_int(max_attempts):
+        raise ConfigurationError(
+            "max_tokens_auto_ramp.max_attempts must be a positive integer."
+        )
+    if cap is not None and not _is_positive_int(cap):
+        raise ConfigurationError("max_tokens_auto_ramp.cap must be a positive integer.")
+
+    return _ResolvedMaxTokensAutoRamp(
+        multiplier=float(multiplier),
+        cap=cap,
+        max_attempts=max_attempts,
+    )
+
+
+def _calculate_ramped_max_tokens(
+    current: int, ramp: _ResolvedMaxTokensAutoRamp
+) -> int | None:
+    if current <= 0:
+        return None
+    new_value = max(current + 1, int(math.ceil(current * ramp.multiplier)))
+    if ramp.cap is not None:
+        if ramp.cap <= current:
+            return None
+        new_value = min(new_value, ramp.cap)
+    if new_value <= current:
+        return None
+    return new_value
+
+
+def _find_max_tokens_target(
+    kwargs: dict[str, Any],
+) -> tuple[str, int, Callable[[int], None]] | None:
+    if _is_positive_int(kwargs.get("max_tokens")):
+        return (
+            "max_tokens",
+            kwargs["max_tokens"],
+            lambda value: kwargs.__setitem__("max_tokens", value),
+        )
+    if _is_positive_int(kwargs.get("max_output_tokens")):
+        return (
+            "max_output_tokens",
+            kwargs["max_output_tokens"],
+            lambda value: kwargs.__setitem__("max_output_tokens", value),
+        )
+
+    generation_config = kwargs.get("generation_config")
+    if isinstance(generation_config, dict) and _is_positive_int(
+        generation_config.get("max_output_tokens")
+    ):
+        return (
+            "generation_config.max_output_tokens",
+            generation_config["max_output_tokens"],
+            lambda value: generation_config.__setitem__("max_output_tokens", value),
+        )
+
+    inference_config = kwargs.get("inferenceConfig")
+    if isinstance(inference_config, dict) and _is_positive_int(
+        inference_config.get("maxTokens")
+    ):
+        return (
+            "inferenceConfig.maxTokens",
+            inference_config["maxTokens"],
+            lambda value: inference_config.__setitem__("maxTokens", value),
+        )
+
+    if _is_positive_int(kwargs.get("maxTokens")):
+        return (
+            "maxTokens",
+            kwargs["maxTokens"],
+            lambda value: kwargs.__setitem__("maxTokens", value),
+        )
+
+    config = kwargs.get("config")
+    if isinstance(config, dict) and _is_positive_int(config.get("max_output_tokens")):
+        return (
+            "config.max_output_tokens",
+            config["max_output_tokens"],
+            lambda value: config.__setitem__("max_output_tokens", value),
+        )
+    if config is not None and hasattr(config, "max_output_tokens"):
+        current = getattr(config, "max_output_tokens", None)
+        if _is_positive_int(current):
+            return (
+                "config.max_output_tokens",
+                current,
+                lambda value: setattr(config, "max_output_tokens", value),
+            )
+
+    return None
+
+
+def _apply_max_tokens_ramp(
+    kwargs: dict[str, Any], ramp: _ResolvedMaxTokensAutoRamp
+) -> bool:
+    target = _find_max_tokens_target(kwargs)
+    if target is None:
+        logger.debug("Auto-ramp skipped: no max token setting found.")
+        return False
+
+    target_name, current, setter = target
+    new_value = _calculate_ramped_max_tokens(current, ramp)
+    if new_value is None:
+        logger.debug(
+            "Auto-ramp skipped: token cap prevents increase (%s=%s).",
+            target_name,
+            current,
+        )
+        return False
+
+    try:
+        setter(new_value)
+    except Exception as exc:
+        logger.debug(
+            "Auto-ramp failed to set %s: %s", target_name, exc, exc_info=True
+        )
+        return False
+
+    logger.debug(
+        "Auto-ramped %s from %s to %s.", target_name, current, new_value
+    )
+    return True
+
+
+def _build_retry_predicate(
+    *,
+    failfast_on_truncation: bool,
+    auto_ramp: _ResolvedMaxTokensAutoRamp | None,
+    truncation_state: dict[str, Any],
+):
+    if not failfast_on_truncation and auto_ramp is None:
+        return None
+
+    def _should_retry(exception: Exception) -> bool:
+        if isinstance(exception, IncompleteOutputException):
+            if failfast_on_truncation:
+                return False
+            if truncation_state.get("stop", False):
+                return False
+        return True
+
+    return retry_if_exception(_should_retry)
+
+
 def initialize_retrying(
     max_retries: int | Retrying | AsyncRetrying,
     is_async: bool,
     timeout: float | None = None,
+    retry: Any | None = None,
 ):
     """
     Initialize the retrying mechanism based on the type (synchronous or asynchronous).
@@ -75,16 +265,26 @@ def initialize_retrying(
         for condition in stop_conditions[1:]:
             stop_condition = stop_condition | condition
 
+        retry_kwargs = {"stop": stop_condition}
+        if retry is not None:
+            retry_kwargs["retry"] = retry
         if is_async:
-            max_retries = AsyncRetrying(stop=stop_condition)
+            max_retries = AsyncRetrying(**retry_kwargs)
         else:
-            max_retries = Retrying(stop=stop_condition)
+            max_retries = Retrying(**retry_kwargs)
     elif not isinstance(max_retries, (Retrying, AsyncRetrying)):
         from .exceptions import ConfigurationError
 
         raise ConfigurationError(
             "max_retries must be an int or a `tenacity.Retrying`/`tenacity.AsyncRetrying` object"
         )
+    elif retry is not None:
+        try:
+            max_retries.retry = max_retries.retry & retry  # type: ignore[assignment]
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            logger.debug(
+                "Failed to combine retry predicates: %s", exc, exc_info=True
+            )
     return max_retries
 
 
@@ -150,6 +350,8 @@ def retry_sync(
     strict: bool | None = None,
     mode: Mode = Mode.TOOLS,
     hooks: Hooks | None = None,
+    failfast_on_truncation: bool = False,
+    max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
 ) -> T_Model | None:
     """
     Retry a synchronous function upon specified exceptions.
@@ -164,6 +366,9 @@ def retry_sync(
         strict (Optional[bool], optional): Strict mode flag. Defaults to None.
         mode (Mode, optional): The mode of operation. Defaults to Mode.TOOLS.
         hooks (Optional[Hooks], optional): Hooks for emitting events. Defaults to None.
+        failfast_on_truncation (bool, optional): Stop retries on truncation. Defaults to False.
+        max_tokens_auto_ramp (MaxTokensAutoRampConfig | bool | None, optional):
+            Auto-increase max tokens on truncation. Defaults to None.
 
     Returns:
         T_Model | None: The processed response model or None.
@@ -175,7 +380,16 @@ def retry_sync(
     total_usage = initialize_usage(mode)
     # Extract timeout from kwargs if available (for global timeout across retries)
     timeout = kwargs.get("timeout")
-    max_retries = initialize_retrying(max_retries, is_async=False, timeout=timeout)
+    truncation_state = {"attempts": 0, "stop": False}
+    auto_ramp = _resolve_max_tokens_auto_ramp(max_tokens_auto_ramp)
+    retry_predicate = _build_retry_predicate(
+        failfast_on_truncation=failfast_on_truncation,
+        auto_ramp=auto_ramp,
+        truncation_state=truncation_state,
+    )
+    max_retries = initialize_retrying(
+        max_retries, is_async=False, timeout=timeout, retry=retry_predicate
+    )
 
     # Pre-extract stream flag to avoid repeated lookup
     stream = kwargs.get("stream", False)
@@ -204,6 +418,32 @@ def retry_sync(
                         mode=mode,
                         stream=stream,
                     )
+                except IncompleteOutputException as e:
+                    logger.debug(f"Truncated output: {e}")
+                    hooks.emit_parse_error(e)
+
+                    failed_attempts.append(
+                        FailedAttempt(
+                            attempt_number=attempt.retry_state.attempt_number,
+                            exception=e,
+                            completion=response,
+                        )
+                    )
+
+                    truncation_state["attempts"] += 1
+                    stop_retry = False
+                    if failfast_on_truncation:
+                        stop_retry = True
+                    elif auto_ramp is not None:
+                        if truncation_state["attempts"] > auto_ramp.max_attempts:
+                            stop_retry = True
+                        elif not _apply_max_tokens_ramp(kwargs, auto_ramp):
+                            stop_retry = True
+
+                    truncation_state["stop"] = stop_retry
+                    if stop_retry:
+                        hooks.emit_completion_last_attempt(e)
+                    raise e
                 except (
                     ValidationError,
                     JSONDecodeError,
@@ -306,6 +546,8 @@ async def retry_async(
     strict: bool | None = None,
     mode: Mode = Mode.TOOLS,
     hooks: Hooks | None = None,
+    failfast_on_truncation: bool = False,
+    max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
 ) -> T_Model | None:
     """
     Retry an asynchronous function upon specified exceptions.
@@ -320,6 +562,9 @@ async def retry_async(
         strict (Optional[bool], optional): Strict mode flag. Defaults to None.
         mode (Mode, optional): The mode of operation. Defaults to Mode.TOOLS.
         hooks (Optional[Hooks], optional): Hooks for emitting events. Defaults to None.
+        failfast_on_truncation (bool, optional): Stop retries on truncation. Defaults to False.
+        max_tokens_auto_ramp (MaxTokensAutoRampConfig | bool | None, optional):
+            Auto-increase max tokens on truncation. Defaults to None.
 
     Returns:
         T_Model | None: The processed response model or None.
@@ -331,7 +576,16 @@ async def retry_async(
     total_usage = initialize_usage(mode)
     # Extract timeout from kwargs if available (for global timeout across retries)
     timeout = kwargs.get("timeout")
-    max_retries = initialize_retrying(max_retries, is_async=True, timeout=timeout)
+    truncation_state = {"attempts": 0, "stop": False}
+    auto_ramp = _resolve_max_tokens_auto_ramp(max_tokens_auto_ramp)
+    retry_predicate = _build_retry_predicate(
+        failfast_on_truncation=failfast_on_truncation,
+        auto_ramp=auto_ramp,
+        truncation_state=truncation_state,
+    )
+    max_retries = initialize_retrying(
+        max_retries, is_async=True, timeout=timeout, retry=retry_predicate
+    )
 
     # Pre-extract stream flag to avoid repeated lookup
     stream = kwargs.get("stream", False)
@@ -360,6 +614,32 @@ async def retry_async(
                         mode=mode,
                         stream=stream,
                     )
+                except IncompleteOutputException as e:
+                    logger.debug(f"Truncated output: {e}")
+                    hooks.emit_parse_error(e)
+
+                    failed_attempts.append(
+                        FailedAttempt(
+                            attempt_number=attempt.retry_state.attempt_number,
+                            exception=e,
+                            completion=response,
+                        )
+                    )
+
+                    truncation_state["attempts"] += 1
+                    stop_retry = False
+                    if failfast_on_truncation:
+                        stop_retry = True
+                    elif auto_ramp is not None:
+                        if truncation_state["attempts"] > auto_ramp.max_attempts:
+                            stop_retry = True
+                        elif not _apply_max_tokens_ramp(kwargs, auto_ramp):
+                            stop_retry = True
+
+                    truncation_state["stop"] = stop_retry
+                    if stop_retry:
+                        hooks.emit_completion_last_attempt(e)
+                    raise e
                 except (
                     ValidationError,
                     JSONDecodeError,

@@ -25,6 +25,7 @@ from typing_extensions import Self
 from pydantic import BaseModel
 from ..dsl.partial import Partial
 from .hooks import Hooks, HookName
+from .retry import MaxTokensAutoRampConfig
 
 
 T = TypeVar("T", bound=Union[BaseModel, "Iterable[Any]", "Partial[Any]"])
@@ -45,6 +46,8 @@ class Response:
         validation_context: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
         strict: bool = True,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> T | Any:
         if isinstance(input, str):
@@ -61,6 +64,8 @@ class Response:
             context=context,
             max_retries=max_retries,
             strict=strict,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             messages=input,
             **kwargs,
         )
@@ -70,6 +75,8 @@ class Response:
         input: str | list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int | Retrying = 3,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> tuple[T, Any]:
         if isinstance(input, str):
@@ -84,6 +91,8 @@ class Response:
             messages=input,
             response_model=response_model,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -92,6 +101,8 @@ class Response:
         input: str | list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int | Retrying = 3,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> Generator[T, None, None]:
         if isinstance(input, str):
@@ -106,6 +117,8 @@ class Response:
             messages=input,
             response_model=response_model,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -114,6 +127,8 @@ class Response:
         input: str | list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int | Retrying = 3,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> Generator[T, None, None]:
         if isinstance(input, str):
@@ -128,6 +143,8 @@ class Response:
             messages=input,
             response_model=response_model,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -144,6 +161,8 @@ class AsyncResponse(Response):
         validation_context: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
         strict: bool = True,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> T | Any:
         if isinstance(input, str):
@@ -160,6 +179,8 @@ class AsyncResponse(Response):
             context=context,
             max_retries=max_retries,
             strict=strict,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             messages=input,
             **kwargs,
         )
@@ -169,6 +190,8 @@ class AsyncResponse(Response):
         input: str | list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int | AsyncRetrying = 3,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> tuple[T, Any]:
         if isinstance(input, str):
@@ -183,6 +206,8 @@ class AsyncResponse(Response):
             messages=input,
             response_model=response_model,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -191,6 +216,8 @@ class AsyncResponse(Response):
         input: str | list[ChatCompletionMessageParam],
         response_model: type[T],
         max_retries: int | AsyncRetrying = 3,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs,
     ) -> AsyncGenerator[T, None]:
         if isinstance(input, str):
@@ -205,6 +232,8 @@ class AsyncResponse(Response):
             messages=input,
             response_model=response_model,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -313,6 +342,8 @@ class Instructor:
         context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Awaitable[T]: ...
 
@@ -326,6 +357,8 @@ class Instructor:
         context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> T: ...
 
@@ -339,6 +372,8 @@ class Instructor:
         context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Awaitable[Any]: ...
 
@@ -352,6 +387,8 @@ class Instructor:
         context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Any: ...
 
@@ -364,6 +401,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> T | Any | Awaitable[T] | Awaitable[Any]:
         kwargs = self.handle_kwargs(kwargs)
@@ -381,6 +420,8 @@ class Instructor:
             context=context,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -394,6 +435,8 @@ class Instructor:
         context: dict[str, Any] | None = None,  # {{ edit_1 }}
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]: ...
 
@@ -407,6 +450,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Generator[T, None, None]: ...
 
@@ -419,6 +464,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Generator[T, None, None] | AsyncGenerator[T, None]:
         kwargs["stream"] = True
@@ -439,6 +486,8 @@ class Instructor:
             context=context,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -452,6 +501,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]: ...
 
@@ -465,6 +516,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Generator[T, None, None]: ...
 
@@ -477,6 +530,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Generator[T, None, None] | AsyncGenerator[T, None]:
         kwargs["stream"] = True
@@ -496,6 +551,8 @@ class Instructor:
             context=context,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -509,6 +566,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> Awaitable[tuple[T, Any]]: ...
 
@@ -522,6 +581,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> tuple[T, Any]: ...
 
@@ -534,6 +595,8 @@ class Instructor:
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> tuple[T, Any] | Awaitable[tuple[T, Any]]:
         kwargs = self.handle_kwargs(kwargs)
@@ -551,6 +614,8 @@ class Instructor:
             context=context,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
         return model, model._raw_response
@@ -614,6 +679,8 @@ class AsyncInstructor(Instructor):
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> T | Any:
         kwargs = self.handle_kwargs(kwargs)
@@ -643,6 +710,8 @@ class AsyncInstructor(Instructor):
                 context=context,
                 strict=strict,
                 hooks=hooks,  # Pass the per-call hooks to create_iterable
+                failfast_on_truncation=failfast_on_truncation,
+                max_tokens_auto_ramp=max_tokens_auto_ramp,
                 **kwargs,
             )
 
@@ -654,6 +723,8 @@ class AsyncInstructor(Instructor):
             messages=messages,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
 
@@ -666,6 +737,8 @@ class AsyncInstructor(Instructor):
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]:
         kwargs = self.handle_kwargs(kwargs)
@@ -684,6 +757,8 @@ class AsyncInstructor(Instructor):
             messages=messages,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         ):
             yield item
@@ -697,6 +772,8 @@ class AsyncInstructor(Instructor):
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[T, None]:
         kwargs = self.handle_kwargs(kwargs)
@@ -715,6 +792,8 @@ class AsyncInstructor(Instructor):
             messages=messages,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         ):
             yield item
@@ -728,6 +807,8 @@ class AsyncInstructor(Instructor):
         context: dict[str, Any] | None = None,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         **kwargs: Any,
     ) -> tuple[T, Any]:
         kwargs = self.handle_kwargs(kwargs)
@@ -745,6 +826,8 @@ class AsyncInstructor(Instructor):
             messages=messages,
             strict=strict,
             hooks=combined_hooks,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             **kwargs,
         )
         return response, response._raw_response

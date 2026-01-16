@@ -56,6 +56,26 @@ except IncompleteOutputException as e:
     print(f"Last completion: {e.last_completion}")
 ```
 
+You can also control truncation retries directly:
+
+```python
+# Fail fast when output is truncated
+response = client.create(
+    response_model=DetailedReport,
+    messages=[{"role": "user", "content": "Write a very long report..."}],
+    max_tokens=200,
+    failfast_on_truncation=True,
+)
+
+# Auto-ramp max_tokens when truncation happens
+response = client.create(
+    response_model=DetailedReport,
+    messages=[{"role": "user", "content": "Write a very long report..."}],
+    max_tokens=200,
+    max_tokens_auto_ramp={"multiplier": 1.5, "cap": 2000, "max_attempts": 2},
+)
+```
+
 #### `InstructorRetryException`
 Raised when all retry attempts have been exhausted.
 
@@ -221,6 +241,12 @@ except IncompleteOutputException as e:
     # Handle truncated output - maybe increase max_tokens
     logger.warning(f"Output truncated, retrying with more tokens")
     response = client.create(..., max_tokens=2000)
+    # Or let Instructor handle it for you
+    response = client.create(
+        ...,
+        max_tokens=2000,
+        max_tokens_auto_ramp={"multiplier": 1.5, "cap": 4000, "max_attempts": 2},
+    )
 except InstructorRetryException as e:
     # Handle retry exhaustion - maybe fallback logic
     logger.error(f"Failed after {e.n_attempts} attempts")

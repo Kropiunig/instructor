@@ -14,7 +14,7 @@ from openai import AsyncOpenAI, OpenAI  # type: ignore[import-not-found]
 from pydantic import BaseModel  # type: ignore[import-not-found]
 
 from ..processing.response import handle_response_model
-from .retry import retry_async, retry_sync
+from .retry import MaxTokensAutoRampConfig, retry_async, retry_sync
 from ..utils import is_async
 from .hooks import Hooks
 from ..templating import handle_templating
@@ -41,6 +41,8 @@ class InstructorChatCompletionCreate(Protocol):
         validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
         context: dict[str, Any] | None = None,
         max_retries: int | Retrying = 1,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> T_Model: ...
@@ -53,6 +55,8 @@ class AsyncInstructorChatCompletionCreate(Protocol):
         validation_context: dict[str, Any] | None = None,  # Deprecate in 2.0
         context: dict[str, Any] | None = None,
         max_retries: int | AsyncRetrying = 1,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> T_Model: ...
@@ -129,6 +133,8 @@ def patch(  # type: ignore
     - `validation_context` parameter to validate the response using the pydantic model
     - `strict` parameter to use strict json parsing
     - `hooks` parameter to hook into the completion process
+    - `failfast_on_truncation` parameter to stop retries on truncation
+    - `max_tokens_auto_ramp` parameter to increase max tokens on truncation
     """
 
     logger.debug(f"Patching `client.chat.completions.create` with {mode=}")
@@ -150,6 +156,8 @@ def patch(  # type: ignore
         max_retries: int | AsyncRetrying = 1,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         *args: T_ParamSpec.args,
         **kwargs: T_ParamSpec.kwargs,
     ) -> T_Model:
@@ -190,6 +198,8 @@ def patch(  # type: ignore
             response_model=response_model,
             context=context,
             max_retries=max_retries,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
             args=args,
             kwargs=new_kwargs,
             strict=strict,
@@ -219,6 +229,8 @@ def patch(  # type: ignore
         max_retries: int | Retrying = 1,
         strict: bool = True,
         hooks: Hooks | None = None,
+        failfast_on_truncation: bool = False,
+        max_tokens_auto_ramp: MaxTokensAutoRampConfig | bool | None = None,
         *args: T_ParamSpec.args,
         **kwargs: T_ParamSpec.kwargs,
     ) -> T_Model:
@@ -265,6 +277,8 @@ def patch(  # type: ignore
             strict=strict,
             kwargs=new_kwargs,
             mode=mode,
+            failfast_on_truncation=failfast_on_truncation,
+            max_tokens_auto_ramp=max_tokens_auto_ramp,
         )
 
         # Save to cache
