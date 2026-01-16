@@ -18,10 +18,10 @@ class DummyIterableResponseModel(BaseModel, IterableBase):
     @classmethod
     def from_response(  # type: ignore[override]
         cls,
-        response: Any,
+        _response: Any,
         *_args: Any,
         **_kwargs: Any,
-    ) -> "DummyIterableResponseModel":
+    ) -> DummyIterableResponseModel:
         return cls(tasks=[1, 2, 3])
 
 

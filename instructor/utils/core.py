@@ -14,7 +14,6 @@ from typing import (
     Any,
     Callable,
     Generic,
-    List,
     TypeVar,
     cast,
     get_args,
@@ -600,7 +599,7 @@ def prepare_response_model(response_model: type[T] | None) -> type[T] | None:
     # simple type detection. `is_simple_type()` treats `List[T]` as simple,
     # which would incorrectly wrap it in ModelAdapter.
     origin = get_origin(response_model)
-    if origin in {list, List, Iterable}:
+    if origin in {list, Iterable}:
         args = get_args(response_model)
         if args and args[0] is not None:
             iterable_element_class = args[0]
