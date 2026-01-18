@@ -21,7 +21,7 @@ class UserExtract(BaseModel):
     age: int
 
 
-user, completion = client.chat.completions.create_with_completion(
+user, completion = client.create_with_completion(
     response_model=UserExtract,
     messages=[
         {"role": "user", "content": "Extract jason is 25 years old"},
@@ -76,6 +76,42 @@ ChatCompletion(
 """
 ```
 
+## Raw response with a list response model
+
+If your response model is a list (for example, `list[UserExtract]`), you can still use `create_with_completion()`. The returned value behaves like a normal list, but it also keeps the raw response so `create_with_completion()` does not crash.
+
+```python
+import instructor
+from pydantic import BaseModel
+
+client = instructor.from_provider("openai/gpt-4.1-mini")
+
+
+class UserExtract(BaseModel):
+    name: str
+    age: int
+
+
+users, completion = client.create_with_completion(
+    response_model=list[UserExtract],
+    messages=[
+        {"role": "user", "content": "Extract users: Jason is 25, Ivan is 30"},
+    ],
+)
+
+print(users[0])
+#> name='Jason' age=25
+
+raw = users.get_raw_response()
+assert raw == completion
+```
+
+## See Also
+
+- [Hooks](./hooks.md) - Monitor LLM interactions without accessing raw responses
+- [Debugging](../debugging.md) - Debugging techniques for LLM outputs
+- [Response Models](./models.md) - Working with structured response models
+
 ## Anthropic Raw Response
 
 You can also access the raw response from Anthropic models. This is useful for debugging or when you need to access additional information from the response.
@@ -86,7 +122,7 @@ import instructor
 client = instructor.from_provider("anthropic/claude-3-5-sonnet-latest")
 
 
-user, completion = client.chat.completions.create_with_completion(
+user, completion = client.create_with_completion(
     response_model=UserExtract,
     messages=[
         {"role": "user", "content": "Extract jason is 25 years old"},

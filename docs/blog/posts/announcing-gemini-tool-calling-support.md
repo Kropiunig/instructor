@@ -68,7 +68,7 @@ client = instructor.from_provider("google/gemini-2.5-flash")
     )
 )
 
-resp = client.chat.completions.create(
+resp = client.create(
     messages=[
         {
             "role": "user",
@@ -82,7 +82,7 @@ print(resp)
 #> name='Jason' age=25
 ```
 
-1. Current Gemini models that support tool calling are `gemini-1.5-flash-latest` and `gemini-1.5-pro-latest`.
+1. Current Gemini models that support tool calling are `gemini-3-flash` and `gemini-1.5-pro-latest`.
 
 We can achieve a similar thing with the VertexAI SDK. For this to work, you'll need to authenticate to VertexAI.
 
@@ -106,7 +106,7 @@ client = instructor.from_provider("google/gemini-2.5-flash", vertexai=True),  # 
 )
 
 
-resp = client.chat.completions.create(
+resp = client.create(
     messages=[
         {
             "role": "user",
@@ -120,4 +120,4 @@ print(resp)
 #> name='Jason' age=25
 ```
 
-1. Current Gemini models that support tool calling are `gemini-1.5-flash-latest` and `gemini-1.5-pro-latest`.
+1. Current Gemini models that support tool calling are `gemini-3-flash` and `gemini-1.5-pro-latest`.

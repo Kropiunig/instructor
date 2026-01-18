@@ -61,7 +61,7 @@ class User(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 
 # Extract structured data
-response = client.chat.completions.create(
+response = client.create(
     messages=[{"role": "user", "content": "Extract: Jason is 25 years old"}],
     response_model=User,
 )
@@ -117,7 +117,7 @@ class User(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 
 # Single string (converted to user message)
-response = client.chat.completions.create(
+response = client.create(
     messages="Jason is 25 years old",
     response_model=User,
 )
@@ -126,7 +126,7 @@ print(response)
 # > name='Jason' age=25
 
 # Standard format
-response = client.chat.completions.create(
+response = client.create(
     messages=[
         {"role": "user", "content": "Jason is 25 years old"}
     ],
@@ -137,7 +137,7 @@ print(response)
 # > name='Jason' age=25
 
 # Using genai's Content type
-response = client.chat.completions.create(
+response = client.create(
     messages=[
         genai.types.Content(
             role="user",
@@ -169,7 +169,7 @@ class User(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 
 # As a parameter
-response = client.chat.completions.create(
+response = client.create(
     system="Jason is 25 years old",
     messages=[{"role": "user", "content": "You are a data extraction assistant"}],
     response_model=User,
@@ -179,7 +179,7 @@ print(response)
 # > name='Jason' age=25
 
 # Or as a message with role "system"
-response = client.chat.completions.create(
+response = client.create(
     messages=[
         {"role": "system", "content": "Jason is 25 years old"},
         {"role": "user", "content": "You are a data extraction assistant"},
@@ -213,7 +213,7 @@ class User(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 
 # Single string (converted to user message)
-response = client.chat.completions.create(
+response = client.create(
     messages=[{"role": "user", "content": "{{ name }} is {{ age }} years old"}],
     response_model=User,
     context={
@@ -226,7 +226,7 @@ print(response)
 # > name='Jason' age=25
 
 # Standard format
-response = client.chat.completions.create(
+response = client.create(
     messages=[{"role": "user", "content": "{{ name }} is {{ age }} years old"}],
     response_model=User,
     context={
@@ -239,7 +239,7 @@ print(response)
 # > name='Jason' age=25
 
 # Using genai's Content type
-response = client.chat.completions.create(
+response = client.create(
     messages=[
         genai.types.Content(
             role="user",
@@ -281,7 +281,7 @@ class UserDetail(BaseModel):
 
 client = instructor.from_provider("google/gemini-2.5-flash")
 
-response = client.chat.completions.create(
+response = client.create(
     messages=[{"role": "user", "content": "Extract: jason is 25 years old"}],
     response_model=UserDetail,
     max_retries=3,
@@ -332,7 +332,7 @@ class ImageDescription(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 url = "https://raw.githubusercontent.com/instructor-ai/instructor/main/tests/assets/image.jpg"
 # Multiple ways to load an image:
-response = client.chat.completions.create(
+response = client.create(
     response_model=ImageDescription,
     messages=[
         {
@@ -386,7 +386,7 @@ url = "https://raw.githubusercontent.com/instructor-ai/instructor/main/tests/ass
 
 client = instructor.from_provider("google/gemini-2.5-flash")
 
-response = client.chat.completions.create(
+response = client.create(
     response_model=AudioDescription,
     messages=[
         {
@@ -429,7 +429,7 @@ class Receipt(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 url = "https://raw.githubusercontent.com/instructor-ai/instructor/main/tests/assets/invoice.pdf"
 # Multiple ways to load an PDF:
-response = client.chat.completions.create(
+response = client.create(
     response_model=Receipt,
     messages=[
         {
@@ -482,7 +482,7 @@ class Receipt(BaseModel):
 client = instructor.from_provider("google/gemini-2.5-flash")
 url = "https://raw.githubusercontent.com/instructor-ai/instructor/main/tests/assets/invoice.pdf"
 # Multiple ways to load an PDF:
-response = client.chat.completions.create(
+response = client.create(
     response_model=Receipt,
     messages=[
         {
@@ -524,7 +524,7 @@ file1 = client.files.upload(
 )
 
 # As a parameter
-response = client.chat.completions.create(
+response = client.create(
     messages=[
         {
             "role": "user",
@@ -577,7 +577,7 @@ class PersonList(BaseModel):
     people: list[Person]
 
 
-stream = client.chat.completions.create_partial(
+stream = client.create_partial(
     model="gemini-2.5-flash",
     response_model=PersonList,
     stream=True,
@@ -611,7 +611,7 @@ class User(BaseModel):
     age: int
 
 # Extract multiple users from a single response
-stream = client.chat.completions.create_iterable(
+stream = client.create_iterable(
     model="gemini-2.5-flash",
     response_model=User,
     stream=True,
@@ -646,7 +646,7 @@ class User(BaseModel):
 async def async_partial_example():
     client = instructor.from_provider("google/gemini-2.5-flash", async_client=True)
     
-    stream = client.chat.completions.create_partial(
+    stream = client.create_partial(
         model="gemini-2.5-flash",
         response_model=User,
         stream=True,
@@ -661,7 +661,7 @@ async def async_partial_example():
 async def async_iterable_example():
     client = instructor.from_provider("google/gemini-2.5-flash", async_client=True)
     
-    stream = client.chat.completions.create_iterable(
+    stream = client.create_iterable(
         model="gemini-2.5-flash",
         response_model=User,
         stream=True,
@@ -703,7 +703,7 @@ async def extract_user():
         async_client=True,
     )
 
-    response = await client.chat.completions.create(
+    response = await client.create(
         messages=[{"role": "user", "content": "Extract: Jason is 25 years old"}],
         response_model=User,
     )

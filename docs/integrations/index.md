@@ -105,7 +105,7 @@ client = instructor.from_provider("openai/gpt-4")
 async_client = instructor.from_provider("anthropic/claude-3-sonnet", async_client=True)
 
 # Use the same interface for all providers
-response = client.chat.completions.create(
+response = client.create(
     response_model=UserInfo,
     messages=[{"role": "user", "content": "Your prompt"}]
 )
@@ -142,8 +142,8 @@ Use these example strings with `from_provider` to quickly get started:
 - [x] `instructor.from_provider("bedrock/anthropic.claude-3-sonnet-20240229-v1:0")`
 - [x] `instructor.from_provider("cerebras/llama3.1-70b")`
 - [x] `instructor.from_provider("fireworks/llama-v3-70b-instruct")`
-- [x] `instructor.from_provider("vertexai/gemini-1.5-flash")`
-- [x] `instructor.from_provider("genai/gemini-1.5-flash")`
+- [x] `instructor.from_provider("vertexai/gemini-3-flash")`
+- [x] `instructor.from_provider("genai/gemini-3-flash")`
 - [x] `instructor.from_provider("ollama/llama3")`
 
 ### 2. Manual Client Setup
@@ -165,7 +165,7 @@ Alternatively, you can manually set up the client:
 
 3. Use the patched client with your Pydantic model:
    ```python
-   response = client.chat.completions.create(
+   response = client.create(
        response_model=YourModel,
        messages=[{"role": "user", "content": "Your prompt"}]
    )

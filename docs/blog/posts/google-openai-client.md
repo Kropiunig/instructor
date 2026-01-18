@@ -37,8 +37,8 @@ client = OpenAI(
     base_url="https://generativelanguage.googleapis.com/v1beta/", api_key="YOUR_API_KEY"
 )
 
-response = client.chat.completions.create(
-    model="gemini-1.5-flash",
+response = client.create(
+    model="gemini-3-flash",
     messages=[{"role": "user", "content": "Extract name and age from: John is 30"}],
 )
 ```
@@ -117,8 +117,8 @@ class User(BaseModel):
     age: int
 
 
-resp = client.chat.completions.create_iterable(
-    model="gemini-1.5-flash",
+resp = client.create_iterable(
+    model="gemini-3-flash",
     messages=[
         {
             "role": "user",
@@ -165,8 +165,8 @@ class Story(BaseModel):
     summary: str
 
 
-resp = client.chat.completions.create_partial(
-    model="gemini-1.5-flash",
+resp = client.create_partial(
+    model="gemini-3-flash",
     messages=[
         {
             "role": "user",
@@ -241,7 +241,7 @@ class UserDetail(BaseModel):
     age: int
 
 
-response = client.chat.completions.create(
+response = client.create(
     model="gpt-4o-mini",
     response_model=UserDetail,
     messages=[
