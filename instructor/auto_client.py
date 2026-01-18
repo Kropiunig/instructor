@@ -6,6 +6,8 @@ from instructor.models import KnownModelName
 from instructor.cache import BaseCache
 import warnings
 import logging
+import json
+import time
 
 # Type alias for the return type
 InstructorType = Union[Instructor, AsyncInstructor]
@@ -561,14 +563,41 @@ def from_provider(
     elif provider == "cohere":
         try:
             import cohere
-            from instructor import from_cohere  # type: ignore[attr-defined]
+            from instructor.v2 import from_cohere
 
+            # region agent log
+            with open("/Users/jasonliu/dev/instructor/.cursor/debug.log", "a") as _log:
+                _log.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "streaming-pre",
+                            "hypothesisId": "H5",
+                            "location": "instructor/auto_client.py:from_provider",
+                            "message": "cohere_client_construction",
+                            "data": {
+                                "async_client": bool(async_client),
+                                "has_async_client_v2": hasattr(cohere, "AsyncClientV2"),
+                                "has_client_v2": hasattr(cohere, "ClientV2"),
+                            },
+                            "timestamp": int(time.time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # endregion agent log
             client = (
                 cohere.AsyncClientV2(api_key=api_key)
                 if async_client
                 else cohere.ClientV2(api_key=api_key)
             )
-            result = from_cohere(client, model=model_name, **kwargs)
+            # Use Mode.TOOLS as default for Cohere
+            result = from_cohere(
+                client,
+                mode=mode if mode else instructor.Mode.TOOLS,
+                model=model_name,
+                **kwargs,
+            )
             logger.info(
                 "Client initialized",
                 extra={**provider_info, "status": "success"},
@@ -1096,16 +1125,17 @@ def from_provider(
         try:
             from xai_sdk.sync.client import Client as SyncClient
             from xai_sdk.aio.client import Client as AsyncClient
-            from instructor import from_xai  # type: ignore[attr-defined]
+            from instructor.v2 import from_xai
 
             client = (
                 AsyncClient(api_key=api_key)
                 if async_client
                 else SyncClient(api_key=api_key)
             )
+            # Use Mode.TOOLS instead of Mode.XAI_TOOLS (v2 uses generic modes)
             result = from_xai(
                 client,
-                mode=mode if mode else instructor.Mode.XAI_JSON,
+                mode=mode if mode else instructor.Mode.TOOLS,
                 model=model_name,
                 **kwargs,
             )

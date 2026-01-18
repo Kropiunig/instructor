@@ -54,6 +54,18 @@ PROVIDER_CONFIGS = {
         "basic_modes": [Mode.TOOLS, Mode.JSON],
         "async_modes": [Mode.TOOLS, Mode.JSON],
     },
+    Provider.COHERE: {
+        "provider_string": "cohere/command-a-03-2025",
+        "modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+        "basic_modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+        "async_modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+    },
+    Provider.XAI: {
+        "provider_string": "xai/grok-3-mini",
+        "modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+        "basic_modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+        "async_modes": [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
+    },
 }
 
 
@@ -66,6 +78,12 @@ PROVIDER_CONFIGS = {
         (Provider.ANTHROPIC, Mode.ANTHROPIC_REASONING_TOOLS),
         (Provider.GENAI, Mode.TOOLS),
         (Provider.GENAI, Mode.JSON),
+        (Provider.COHERE, Mode.TOOLS),
+        (Provider.COHERE, Mode.JSON_SCHEMA),
+        (Provider.COHERE, Mode.MD_JSON),
+        (Provider.XAI, Mode.TOOLS),
+        (Provider.XAI, Mode.JSON_SCHEMA),
+        (Provider.XAI, Mode.MD_JSON),
     ],
 )
 def test_mode_is_registered(provider: Provider, mode: Mode):
@@ -85,6 +103,12 @@ def test_mode_is_registered(provider: Provider, mode: Mode):
         (Provider.ANTHROPIC, Mode.JSON_SCHEMA),
         (Provider.GENAI, Mode.TOOLS),
         (Provider.GENAI, Mode.JSON),
+        (Provider.COHERE, Mode.TOOLS),
+        (Provider.COHERE, Mode.JSON_SCHEMA),
+        (Provider.COHERE, Mode.MD_JSON),
+        (Provider.XAI, Mode.TOOLS),
+        (Provider.XAI, Mode.JSON_SCHEMA),
+        (Provider.XAI, Mode.MD_JSON),
     ],
 )
 @pytest.mark.requires_api_key
@@ -120,6 +144,12 @@ def test_mode_basic_extraction(provider: Provider, mode: Mode):
         (Provider.ANTHROPIC, Mode.JSON_SCHEMA),
         (Provider.GENAI, Mode.TOOLS),
         (Provider.GENAI, Mode.JSON),
+        (Provider.COHERE, Mode.TOOLS),
+        (Provider.COHERE, Mode.JSON_SCHEMA),
+        (Provider.COHERE, Mode.MD_JSON),
+        (Provider.XAI, Mode.TOOLS),
+        (Provider.XAI, Mode.JSON_SCHEMA),
+        (Provider.XAI, Mode.MD_JSON),
     ],
 )
 @pytest.mark.asyncio
@@ -258,7 +288,9 @@ def test_anthropic_reasoning_tools_deprecation():
         assert response.answer == 12.0
 
 
-@pytest.mark.parametrize("provider", [Provider.ANTHROPIC, Provider.GENAI])
+@pytest.mark.parametrize(
+    "provider", [Provider.ANTHROPIC, Provider.GENAI, Provider.COHERE, Provider.XAI]
+)
 @pytest.mark.requires_api_key
 def test_all_modes_covered(provider: Provider):
     """Verify we're testing all registered modes for each provider."""

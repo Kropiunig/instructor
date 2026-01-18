@@ -42,6 +42,16 @@ try:
 except ImportError:
     from_openai = None  # type: ignore
 
+try:
+    from instructor.v2.providers.cohere import from_cohere
+except ImportError:
+    from_cohere = None  # type: ignore
+
+try:
+    from instructor.v2.providers.xai import from_xai
+except ImportError:
+    from_xai = None  # type: ignore
+
 __all__ = [
     # Core types
     "Provider",
@@ -59,6 +69,8 @@ __all__ = [
     "ResponseParser",
     # Providers
     "from_anthropic",
+    "from_cohere",
     "from_genai",
     "from_openai",
+    "from_xai",
 ]

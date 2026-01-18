@@ -47,12 +47,15 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     echo "Iteration $ITERATION"
     echo "========================================="
     echo ""
+    echo "Git status (progress):"
+    git status -sb
+    echo ""
     
     # Prompt for the agent
     PROMPT="Read $PLAN_FILE and work through the v2 provider migration systematically:
 
 1. Find the next unchecked section/item in the plan (look for sections with - [ ] checkboxes)
-2. Work on completing that specific task only - do the immediate next thing
+2. Check git status to see progress before starting work on the task
 3. When you finish a task, check it off in $PLAN_FILE (change - [ ] to - [x])
 4. Migration-specific guidelines:
    - Follow the patterns established in already-migrated providers (Anthropic, GenAI)

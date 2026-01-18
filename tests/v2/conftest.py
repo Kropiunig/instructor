@@ -3,20 +3,67 @@ import os
 import pytest
 import importlib.util
 
+from instructor import Provider
+
+
+# Mapping of providers to their API key environment variables and package names
+PROVIDER_API_KEYS = {
+    Provider.ANTHROPIC: ("ANTHROPIC_API_KEY", "anthropic"),
+    Provider.GENAI: ("GOOGLE_API_KEY", "google.genai"),
+    Provider.COHERE: ("COHERE_API_KEY", "cohere"),
+    Provider.OPENAI: ("OPENAI_API_KEY", "openai"),
+    Provider.MISTRAL: ("MISTRAL_API_KEY", "mistralai"),
+    Provider.GROQ: ("GROQ_API_KEY", "groq"),
+    Provider.XAI: ("XAI_API_KEY", "xai_sdk"),
+    Provider.FIREWORKS: ("FIREWORKS_API_KEY", "fireworks"),
+    Provider.CEREBRAS: ("CEREBRAS_API_KEY", "cerebras"),
+    Provider.WRITER: ("WRITER_API_KEY", "writerai"),
+    Provider.PERPLEXITY: ("PERPLEXITY_API_KEY", "openai"),
+    Provider.BEDROCK: ("AWS_ACCESS_KEY_ID", "boto3"),
+    Provider.VERTEXAI: ("GOOGLE_APPLICATION_CREDENTIALS", "google.cloud.aiplatform"),
+}
+
 
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line(
-        "markers", "requires_api_key: mark test as requiring ANTHROPIC_API_KEY"
+        "markers", "requires_api_key: mark test as requiring provider API key"
     )
 
 
 @pytest.fixture(autouse=True)
 def check_api_key_requirement(request):
-    """Skip tests marked with 'requires_api_key' if API key is not set."""
-    if request.node.get_closest_marker("requires_api_key"):
-        if not os.getenv("ANTHROPIC_API_KEY"):
-            pytest.skip("ANTHROPIC_API_KEY environment variable not set")
+    """Skip tests marked with 'requires_api_key' if API key is not set.
 
-        if importlib.util.find_spec("anthropic") is None:
-            pytest.skip("anthropic package is not installed")
+    Automatically detects the provider from test parameters and checks
+    for the appropriate API key.
+    """
+    if not request.node.get_closest_marker("requires_api_key"):
+        return
+
+    # Try to get provider from test parameters
+    provider = None
+    if hasattr(request, "param"):
+        provider = request.param
+    elif (
+        hasattr(request.node, "callspec") and "provider" in request.node.callspec.params
+    ):
+        provider = request.node.callspec.params["provider"]
+
+    if provider is None:
+        # Fallback: check if any provider API key is set
+        for _prov, (env_var, _pkg) in PROVIDER_API_KEYS.items():
+            if os.getenv(env_var):
+                return  # At least one API key is set
+        pytest.skip("No provider API key environment variable is set")
+        return
+
+    # Check for specific provider
+    if provider in PROVIDER_API_KEYS:
+        env_var, package = PROVIDER_API_KEYS[provider]
+
+        if not os.getenv(env_var):
+            pytest.skip(f"{env_var} environment variable not set")
+
+        if importlib.util.find_spec(package.split(".")[0]) is None:
+            pytest.skip(f"{package} package is not installed")

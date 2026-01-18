@@ -272,8 +272,6 @@ class AnthropicToolsHandler(AnthropicHandlerBase):
         response_model: type[BaseModel] | None,
         kwargs: dict[str, Any],
     ) -> tuple[type[BaseModel] | None, dict[str, Any]]:
-        self._register_streaming_from_kwargs(response_model, kwargs)
-
         new_kwargs = kwargs.copy()
         system_messages = extract_system_messages(new_kwargs.get("messages", []))
         if system_messages:
@@ -292,9 +290,9 @@ class AnthropicToolsHandler(AnthropicHandlerBase):
             return None, new_kwargs
 
         # Detect if this is a parallel tools request (Iterable[Union[...]])
-        # Check BEFORE prepare_response_model to avoid wrapping in IterableModel
+        # When streaming, treat Iterable[T] as streaming instead of parallel tools.
         origin = get_origin(response_model)
-        is_parallel = origin is TypingIterable
+        is_parallel = origin is TypingIterable and not new_kwargs.get("stream")
 
         # Prepare response model: wrap simple types in ModelAdapter
         # Skip for parallel tools as they're handled separately
@@ -303,6 +301,8 @@ class AnthropicToolsHandler(AnthropicHandlerBase):
 
             # Use prepare_response_model to handle simple types, TypedDict, etc.
             response_model = prepare_response_model(response_model)
+
+        self._register_streaming_from_kwargs(response_model, new_kwargs)
 
         if is_parallel:
             tool_schemas = handle_anthropic_parallel_model(response_model)

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import time
 from collections.abc import Generator, Iterable as TypingIterable
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, get_origin
@@ -146,14 +147,39 @@ class OpenAIToolsHandler(OpenAIHandlerBase):
         kwargs: dict[str, Any],
     ) -> tuple[type[BaseModel] | None, dict[str, Any]]:
         """Prepare request with tool definitions."""
-        self._register_streaming_from_kwargs(response_model, kwargs)
+        new_kwargs = kwargs.copy()
 
         if response_model is None:
-            return None, kwargs
+            return None, new_kwargs
 
         # Detect if this is a parallel tools request (Iterable[Union[...]])
+        # When streaming, treat Iterable[T] as streaming instead of parallel tools.
         origin = get_origin(response_model)
-        is_parallel = origin is TypingIterable
+        is_parallel = origin is TypingIterable and not new_kwargs.get("stream")
+        # region agent log
+        with open("/Users/jasonliu/dev/instructor/.cursor/debug.log", "a") as _log:
+            _log.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "streaming-pre",
+                        "hypothesisId": "H1",
+                        "location": "instructor/v2/providers/openai/handlers.py:prepare_request",
+                        "message": "openai_tools_prepare_request",
+                        "data": {
+                            "stream": bool(new_kwargs.get("stream")),
+                            "origin": str(origin),
+                            "is_parallel": is_parallel,
+                            "response_model": getattr(
+                                response_model, "__name__", str(response_model)
+                            ),
+                        },
+                        "timestamp": int(time.time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # endregion agent log
 
         # Prepare response model: wrap simple types in ModelAdapter
         if not is_parallel:
@@ -161,7 +187,7 @@ class OpenAIToolsHandler(OpenAIHandlerBase):
 
             response_model = prepare_response_model(response_model)
 
-        new_kwargs = kwargs.copy()
+        self._register_streaming_from_kwargs(response_model, new_kwargs)
 
         if is_parallel:
             # Handle parallel model
@@ -205,9 +231,33 @@ class OpenAIToolsHandler(OpenAIHandlerBase):
     ) -> Any:
         """Parse tool call response."""
         # Check for streaming
-        if isinstance(response_model, type) and self._consume_streaming_flag(
-            response_model
-        ):
+        consume_streaming = isinstance(
+            response_model, type
+        ) and self._consume_streaming_flag(response_model)
+        # region agent log
+        with open("/Users/jasonliu/dev/instructor/.cursor/debug.log", "a") as _log:
+            _log.write(
+                json.dumps(
+                    {
+                        "sessionId": "debug-session",
+                        "runId": "streaming-pre",
+                        "hypothesisId": "H2",
+                        "location": "instructor/v2/providers/openai/handlers.py:parse_response",
+                        "message": "openai_tools_parse_response_streaming_check",
+                        "data": {
+                            "consume_streaming": consume_streaming,
+                            "response_is_asyncgen": inspect.isasyncgen(response),
+                            "response_model": getattr(
+                                response_model, "__name__", str(response_model)
+                            ),
+                        },
+                        "timestamp": int(time.time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+        # endregion agent log
+        if consume_streaming:
             return self._parse_streaming_response(
                 response_model,
                 response,

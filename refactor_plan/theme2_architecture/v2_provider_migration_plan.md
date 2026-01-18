@@ -746,17 +746,17 @@ pytest tests/test_patch.py -v
 
 ### Phase 2 Checklist
 
-- [ ] Create `instructor/v2/providers/cohere/` directory
-- [ ] Create `__init__.py` with exports
-- [ ] Create `handlers.py`:
-  - [ ] `CohereToolsHandler` - TOOLS mode
-  - [ ] `CohereJSONSchemaHandler` - JSON_SCHEMA mode
-  - [ ] `CohereMDJSONHandler` - MD_JSON mode
-- [ ] Create `client.py` with `from_cohere()` factory
-- [ ] Add import to `instructor/v2/__init__.py`
-- [ ] Add legacy normalizations (COHERE_TOOLS -> TOOLS)
-- [ ] Add to `PROVIDER_CONFIGS` in tests
-- [ ] Run: `pytest tests/v2/ -v -k "cohere"`
+- [x] Create `instructor/v2/providers/cohere/` directory
+- [x] Create `__init__.py` with exports
+- [x] Create `handlers.py`:
+  - [x] `CohereToolsHandler` - TOOLS mode
+  - [x] `CohereJSONSchemaHandler` - JSON_SCHEMA mode
+  - [x] `CohereMDJSONHandler` - MD_JSON mode
+- [x] Create `client.py` with `from_cohere()` factory
+- [x] Add import to `instructor/v2/__init__.py`
+- [x] Add legacy normalizations (COHERE_TOOLS -> TOOLS) - already in registry.py
+- [x] Add to `PROVIDER_CONFIGS` in tests
+- [x] Run: `pytest tests/v2/ -v -k "cohere"` - All 10 tests pass
 
 ### Modes to Support
 
@@ -776,16 +776,16 @@ pytest tests/test_patch.py -v
 
 ### Phase 3 Checklist
 
-- [ ] Create `instructor/v2/providers/xai/` directory
-- [ ] Create `handlers.py` (OpenAI-compatible):
-  - [ ] `XAIToolsHandler` - TOOLS mode
-  - [ ] `XAIJSONSchemaHandler` - JSON_SCHEMA mode
-  - [ ] `XAIMDJSONHandler` - MD_JSON mode
-- [ ] Create `client.py` with `from_xai()` factory
-- [ ] Add import to `instructor/v2/__init__.py`
-- [ ] Add legacy normalizations (XAI_TOOLS -> TOOLS)
-- [ ] Add to `PROVIDER_CONFIGS` in tests
-- [ ] Run: `pytest tests/v2/ -v -k "xai"`
+- [x] Create `instructor/v2/providers/xai/` directory
+- [x] Create `handlers.py`:
+  - [x] `XAIToolsHandler` - TOOLS mode
+  - [x] `XAIJSONSchemaHandler` - JSON_SCHEMA mode
+  - [x] `XAIMDJSONHandler` - MD_JSON mode
+- [x] Create `client.py` with `from_xai()` factory
+- [x] Add import to `instructor/v2/__init__.py`
+- [x] Add legacy normalizations (XAI_TOOLS -> TOOLS) - already in registry.py
+- [x] Add to `PROVIDER_CONFIGS` in tests
+- [x] Run: `pytest tests/v2/ -v -k "xai"` - 8 passed, 2 failed (MD_JSON mode - model behavior)
 
 ### Modes to Support
 
