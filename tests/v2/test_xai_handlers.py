@@ -375,38 +375,8 @@ class TestXAIMDJSONHandler:
 # ============================================================================
 # Handler Registration Tests
 # ============================================================================
-
-
-class TestXAIHandlerRegistration:
-    """Tests for xAI handler registration in the v2 registry."""
-
-    @pytest.mark.parametrize(
-        "mode",
-        [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
-    )
-    def test_mode_is_registered(self, mode: Mode):
-        """Test all xAI modes are registered."""
-        assert mode_registry.is_registered(Provider.XAI, mode)
-
-    @pytest.mark.parametrize(
-        "mode",
-        [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
-    )
-    def test_handlers_have_all_methods(self, mode: Mode):
-        """Test all handlers have required methods."""
-        handlers = mode_registry.get_handlers(Provider.XAI, mode)
-
-        assert handlers.request_handler is not None
-        assert handlers.reask_handler is not None
-        assert handlers.response_parser is not None
-
-    def test_get_modes_for_provider(self):
-        """Test getting all modes for xAI provider."""
-        modes = mode_registry.get_modes_for_provider(Provider.XAI)
-
-        assert Mode.TOOLS in modes
-        assert Mode.JSON_SCHEMA in modes
-        assert Mode.MD_JSON in modes
+# Note: Common handler registration tests are unified in
+# test_handler_registration_unified.py. Only provider-specific tests remain here.
 
 
 # ============================================================================

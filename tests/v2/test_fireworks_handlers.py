@@ -281,45 +281,8 @@ class TestFireworksMDJSONHandler:
 # ============================================================================
 # Handler Registration Tests
 # ============================================================================
-
-
-class TestFireworksHandlerRegistration:
-    """Tests for Fireworks handler registration in the v2 registry."""
-
-    @pytest.mark.parametrize(
-        "mode",
-        [Mode.TOOLS, Mode.MD_JSON],
-    )
-    def test_mode_is_registered(self, mode: Mode):
-        """Test all Fireworks modes are registered."""
-        assert mode_registry.is_registered(Provider.FIREWORKS, mode)
-
-    @pytest.mark.parametrize(
-        "mode",
-        [Mode.TOOLS, Mode.MD_JSON],
-    )
-    def test_handlers_have_all_methods(self, mode: Mode):
-        """Test all handlers have required methods."""
-        handlers = mode_registry.get_handlers(Provider.FIREWORKS, mode)
-
-        assert handlers.request_handler is not None
-        assert handlers.reask_handler is not None
-        assert handlers.response_parser is not None
-
-    def test_get_modes_for_provider(self):
-        """Test getting all modes for Fireworks provider."""
-        modes = mode_registry.get_modes_for_provider(Provider.FIREWORKS)
-
-        assert Mode.TOOLS in modes
-        assert Mode.MD_JSON in modes
-
-    def test_json_schema_not_supported(self):
-        """Test JSON_SCHEMA mode is NOT supported by Fireworks."""
-        assert not mode_registry.is_registered(Provider.FIREWORKS, Mode.JSON_SCHEMA)
-
-    def test_parallel_tools_not_supported(self):
-        """Test PARALLEL_TOOLS mode is NOT supported by Fireworks."""
-        assert not mode_registry.is_registered(Provider.FIREWORKS, Mode.PARALLEL_TOOLS)
+# Note: Common handler registration tests are unified in
+# test_handler_registration_unified.py. Only provider-specific tests remain here.
 
 
 # ============================================================================
