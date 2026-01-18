@@ -29,6 +29,7 @@ _HANDLER_MODULE_PATHS: dict[Provider, Path] = {
     Provider.GROQ: _PROJECT_ROOT / "instructor/v2/providers/groq/handlers.py",
     Provider.MISTRAL: _PROJECT_ROOT / "instructor/v2/providers/mistral/handlers.py",
     Provider.FIREWORKS: _PROJECT_ROOT / "instructor/v2/providers/fireworks/handlers.py",
+    Provider.BEDROCK: _PROJECT_ROOT / "instructor/v2/providers/bedrock/handlers.py",
 }
 _HANDLERS_LOADED: set[Provider] = set()
 
@@ -134,6 +135,12 @@ PROVIDER_CONFIGS = {
     },
     Provider.FIREWORKS: {
         "provider_string": "fireworks/accounts/fireworks/models/llama-v3p3-70b-instruct",
+        "modes": [Mode.TOOLS, Mode.MD_JSON],
+        "basic_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "async_modes": [Mode.TOOLS, Mode.MD_JSON],
+    },
+    Provider.BEDROCK: {
+        "provider_string": "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0",
         "modes": [Mode.TOOLS, Mode.MD_JSON],
         "basic_modes": [Mode.TOOLS, Mode.MD_JSON],
         "async_modes": [Mode.TOOLS, Mode.MD_JSON],

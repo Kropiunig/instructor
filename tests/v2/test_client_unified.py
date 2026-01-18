@@ -120,6 +120,20 @@ PROVIDER_CLIENT_CONFIGS: dict[Provider, dict[str, Any]] = {
         "from_function": "from_fireworks",
         "sdk_module": "fireworks",
     },
+    Provider.BEDROCK: {
+        "supported_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "unsupported_modes": [
+            Mode.JSON_SCHEMA,
+            Mode.PARALLEL_TOOLS,
+            Mode.RESPONSES_TOOLS,
+        ],
+        "legacy_modes": {
+            Mode.BEDROCK_TOOLS: Mode.TOOLS,
+            Mode.BEDROCK_JSON: Mode.MD_JSON,
+        },
+        "from_function": "from_bedrock",
+        "sdk_module": "botocore",
+    },
 }
 
 

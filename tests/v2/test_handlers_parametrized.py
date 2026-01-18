@@ -31,6 +31,7 @@ _HANDLER_MODULE_PATHS: dict[Provider, Path] = {
     Provider.GROQ: _PROJECT_ROOT / "instructor/v2/providers/groq/handlers.py",
     Provider.MISTRAL: _PROJECT_ROOT / "instructor/v2/providers/mistral/handlers.py",
     Provider.FIREWORKS: _PROJECT_ROOT / "instructor/v2/providers/fireworks/handlers.py",
+    Provider.BEDROCK: _PROJECT_ROOT / "instructor/v2/providers/bedrock/handlers.py",
 }
 _HANDLERS_LOADED: set[Provider] = set()
 
@@ -95,6 +96,7 @@ PROVIDER_HANDLER_MODES: dict[Provider, list[Mode]] = {
     Provider.GROQ: [Mode.TOOLS, Mode.MD_JSON],
     Provider.MISTRAL: [Mode.TOOLS, Mode.JSON_SCHEMA, Mode.MD_JSON],
     Provider.FIREWORKS: [Mode.TOOLS, Mode.MD_JSON],
+    Provider.BEDROCK: [Mode.TOOLS, Mode.MD_JSON],
 }
 
 
@@ -128,6 +130,10 @@ PARSE_SCENARIOS: dict[Provider, dict[Mode, str]] = {
         Mode.MD_JSON: "markdown",
     },
     Provider.FIREWORKS: {
+        Mode.TOOLS: "tool_call",
+        Mode.MD_JSON: "markdown",
+    },
+    Provider.BEDROCK: {
         Mode.TOOLS: "tool_call",
         Mode.MD_JSON: "markdown",
     },
@@ -181,6 +187,21 @@ class MockResponseBuilder:
                 function=SimpleNamespace(arguments=json.dumps(args))
             )
             return SimpleNamespace(tool_calls=[tool_call])
+        if self.provider == Provider.BEDROCK:
+            return {
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "toolUse": {
+                                    "name": "Answer",
+                                    "input": args,
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
         # Groq and Fireworks use OpenAI-compatible format
         if self.provider in {Provider.GROQ, Provider.FIREWORKS}:
             tool_call = SimpleNamespace(
@@ -212,6 +233,18 @@ class MockResponseBuilder:
             return SimpleNamespace(choices=[choice])
         if self.provider in {Provider.COHERE, Provider.XAI, Provider.GENAI}:
             return SimpleNamespace(text=text)
+        if self.provider == Provider.BEDROCK:
+            return {
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "text": text,
+                            }
+                        ]
+                    }
+                }
+            }
         # Groq, Fireworks, and Mistral use OpenAI-compatible format
         if self.provider in {Provider.GROQ, Provider.FIREWORKS, Provider.MISTRAL}:
             message = SimpleNamespace(content=text, tool_calls=[])
@@ -255,6 +288,22 @@ class MockResponseBuilder:
             message = MockMessage()
             choice = SimpleNamespace(message=message, finish_reason="stop")
             return SimpleNamespace(choices=[choice])
+        if self.provider == Provider.BEDROCK:
+            return {
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "toolUse": {
+                                    "toolUseId": "tool-use-1",
+                                    "name": "Answer",
+                                    "input": {"answer": "invalid"},
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
         return SimpleNamespace(text="Invalid response")
 
 
