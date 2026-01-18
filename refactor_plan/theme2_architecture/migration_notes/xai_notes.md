@@ -86,6 +86,28 @@ Legacy modes are normalized in `instructor/v2/core/registry.py`:
 2. Created custom handlers instead of reusing OpenAI handlers
 3. MD_JSON mode is less reliable than expected due to model behavior
 
+## Test Coverage (Updated 2026-01-18)
+
+### Handler Coverage: 77% (Target: 60%)
+
+Added comprehensive unit tests in `tests/v2/test_xai_handlers.py`:
+- 38 tests covering all three handlers (TOOLS, JSON_SCHEMA, MD_JSON)
+- Tests for `prepare_request()`, `parse_response()`, `handle_reask()`
+- Edge case tests for complex models, validation context, strict mode
+- Registration tests verifying handlers are properly registered
+
+### Client Coverage: 12%
+
+Client coverage is low because:
+- Most client code requires the xAI SDK to be installed
+- The `create()` and `acreate()` functions require actual API calls
+- Added unit tests for helper functions and mode normalization
+
+### Test Files Created
+
+- `tests/v2/test_xai_handlers.py` - 38 handler unit tests
+- `tests/v2/test_xai_client.py` - 17 client unit tests
+
 ## Next Steps
 
 1. Consider removing MD_JSON from xAI's supported modes in test config

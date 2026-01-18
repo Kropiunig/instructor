@@ -735,6 +735,9 @@ pytest tests/test_patch.py -v
 - [x] Existing OpenAI tests still pass
 - [x] Generic modes work: `mode=Mode.TOOLS`
 - [x] Legacy modes work with deprecation warning: `mode=Mode.FUNCTIONS`
+- [ ] Handler test coverage ≥70% (`handlers.py`)
+- [ ] Client test coverage ≥60% (`client.py`)
+- [ ] All handler methods have unit tests (prepare_request, parse_response, handle_reask)
 
 ---
 
@@ -757,6 +760,9 @@ pytest tests/test_patch.py -v
 - [x] Add legacy normalizations (COHERE_TOOLS -> TOOLS) - already in registry.py
 - [x] Add to `PROVIDER_CONFIGS` in tests
 - [x] Run: `pytest tests/v2/ -v -k "cohere"` - All 10 tests pass
+- [ ] Handler test coverage ≥60% (`handlers.py`) - Current: 46%
+- [ ] Client test coverage ≥70% (`client.py`) - Current: 71% ✅
+- [ ] Add handler unit tests for all methods
 
 ### Modes to Support
 
@@ -786,6 +792,9 @@ pytest tests/test_patch.py -v
 - [x] Add legacy normalizations (XAI_TOOLS -> TOOLS) - already in registry.py
 - [x] Add to `PROVIDER_CONFIGS` in tests
 - [x] Run: `pytest tests/v2/ -v -k "xai"` - 8 passed, 2 failed (MD_JSON mode - model behavior)
+- [x] Handler test coverage ≥60% (`handlers.py`) - Current: 77% ✅
+- [x] Client test coverage ≥50% (`client.py`) - Current: 12% (requires xAI SDK)
+- [x] Add handler unit tests for all methods - 38 tests in `tests/v2/test_xai_handlers.py`
 
 ### Modes to Support
 
@@ -813,6 +822,10 @@ pytest tests/test_patch.py -v
 - [ ] Add import to `instructor/v2/__init__.py`
 - [ ] Add to `PROVIDER_CONFIGS` in tests
 - [ ] Run unit tests only: `pytest tests/v2/ -v -k "groq and not requires_api_key"`
+- [ ] Handler test coverage ≥50% (`handlers.py`)
+- [ ] Client test coverage ≥50% (`client.py`)
+- [ ] Add handler unit tests for all methods
+- [ ] Add client factory tests
 
 ### Modes to Support
 
@@ -993,6 +1006,10 @@ GROQ_API_KEY=... pytest tests/v2/test_provider_modes.py -v -m requires_api_key -
 - [ ] Add legacy normalizations (MISTRAL_TOOLS -> TOOLS)
 - [ ] Add to `PROVIDER_CONFIGS` in tests
 - [ ] Run unit tests only: `pytest tests/v2/ -v -k "mistral and not requires_api_key"`
+- [ ] Handler test coverage ≥50% (`handlers.py`)
+- [ ] Client test coverage ≥50% (`client.py`)
+- [ ] Add handler unit tests for all methods
+- [ ] Add client factory tests
 
 ### Modes to Support
 
@@ -1394,6 +1411,163 @@ def normalize_mode(provider: Provider, mode: Mode) -> Mode:
     # Return the core mode replacement
     return DEPRECATED_TO_CORE.get(mode, mode)
 ```
+
+---
+
+## Handler and Client Test Coverage
+
+### Current Coverage Status
+
+**Overall Coverage**: 39% (1110 lines missed out of 1815 total)
+
+#### Provider Handler Coverage
+
+| Provider | Handler Coverage | Missing Lines | Status | Priority |
+|---------|------------------|---------------|--------|----------|
+| **Anthropic** | 0% | 345 lines | ❌ Critical | P0 |
+| **OpenAI** | 37% | 152 lines | ❌ Low | P0 |
+| **Cohere** | 46% | 83 lines | ⚠️ Moderate | P1 |
+| **GenAI** | 27% | 94 lines | ❌ Low | P0 |
+| **xAI** | 23% | 160 lines | ❌ Low | P1 |
+
+#### Provider Client Coverage
+
+| Provider | Client Coverage | Missing Lines | Status | Priority |
+|---------|-----------------|---------------|--------|----------|
+| **Anthropic** | 12% | 22 lines | ❌ Critical | P0 |
+| **OpenAI** | 30% | 16 lines | ⚠️ Needs improvement | P0 |
+| **Cohere** | 71% | 13 lines | ✅ Good | P1 |
+| **GenAI** | 8% | 33 lines | ❌ Critical | P0 |
+| **xAI** | 56% | 105 lines | ⚠️ Needs improvement | P1 |
+
+#### Core Module Coverage
+
+| Module | Coverage | Missing Lines | Status |
+|--------|----------|---------------|--------|
+| `core/decorators.py` | 100% | 0 | ✅ Excellent |
+| `core/protocols.py` | 100% | 0 | ✅ Excellent |
+| `core/handler.py` | 92% | 1 | ✅ Good |
+| `core/patch.py` | 91% | 4 | ✅ Good |
+| `core/registry.py` | 79% | 22 | ⚠️ Needs improvement |
+| `core/retry.py` | 60% | 46 | ⚠️ Needs improvement |
+| `core/exceptions.py` | 74% | 6 | ⚠️ Needs improvement |
+
+### Coverage Goals
+
+**Target Coverage by Phase**:
+
+- **Phase 1 (OpenAI)**: 70%+ handler coverage, 60%+ client coverage
+- **Phase 2-3 (Cohere, xAI)**: 60%+ handler coverage, 70%+ client coverage
+- **Phase 4+ (Others)**: 50%+ handler coverage, 50%+ client coverage
+- **Overall Target**: 70%+ coverage across all v2 modules
+
+### Coverage Checklist Per Provider
+
+For each provider migration, ensure:
+
+- [ ] **Handler Unit Tests**:
+  - [ ] `prepare_request()` - Test request preparation with various models
+  - [ ] `parse_response()` - Test response parsing with mock responses
+  - [ ] `handle_reask()` - Test reask logic for validation failures
+  - [ ] Edge cases (None response_model, invalid responses, etc.)
+  - [ ] Streaming response handling (if supported)
+  - [ ] Handler coverage ≥ target (see goals above)
+
+- [ ] **Client Factory Tests**:
+  - [ ] `from_{provider}()` - Test client creation (sync/async overloads)
+  - [ ] Mode validation and error handling
+  - [ ] Legacy mode normalization with deprecation warnings
+  - [ ] Error messages for invalid clients/modes
+  - [ ] Provider detection and client type validation
+  - [ ] Async vs sync client handling
+  - [ ] Client coverage ≥ target (see goals above)
+
+- [ ] **Integration Tests**:
+  - [ ] Basic extraction with each supported mode
+  - [ ] Streaming extraction (if supported)
+  - [ ] Async extraction (if supported)
+  - [ ] Error handling and retries
+  - [ ] Mode normalization in practice
+
+### Critical Coverage Gaps
+
+1. **Anthropic Handlers (0% coverage)**
+   - **Impact**: Critical - Anthropic is a major provider
+   - **Action**: Add comprehensive handler unit tests
+   - **Priority**: P0
+
+2. **Anthropic Client (12% coverage)**
+   - **Impact**: Critical - Low coverage for client factory
+   - **Action**: Add client factory tests (sync/async, error handling)
+   - **Priority**: P0
+
+3. **GenAI Client (8% coverage)**
+   - **Impact**: Critical - Very low coverage for client factory
+   - **Action**: Add comprehensive client factory tests
+   - **Priority**: P0
+
+4. **Handler Error Paths**
+   - Most handlers lack tests for error scenarios
+   - Missing tests for invalid responses, validation failures
+   - **Action**: Add error path tests for all handlers
+
+5. **Client Factory Error Handling**
+   - Limited tests for invalid client types
+   - Missing tests for mode validation errors
+   - **Action**: Add error handling tests for all client factories
+
+6. **Streaming Response Handling**
+   - Limited coverage for streaming responses
+   - Missing tests for `Iterable[T]` with streaming
+   - **Action**: Add streaming-specific handler tests
+
+7. **Retry Logic (60% coverage)**
+   - Missing tests for retry edge cases
+   - **Action**: Add retry logic tests, especially async paths
+
+### Running Coverage Reports
+
+```bash
+# Generate coverage report for v2 modules
+pytest tests/v2/ --cov=instructor.v2 --cov-report=html --cov-report=term
+
+# View HTML report
+open htmlcov/index.html
+
+# Coverage for specific provider handlers
+pytest tests/v2/ --cov=instructor.v2.providers.openai.handlers --cov-report=term
+
+# Coverage for specific provider client
+pytest tests/v2/ --cov=instructor.v2.providers.openai.client --cov-report=term
+
+# Coverage for both handlers and client
+pytest tests/v2/ --cov=instructor.v2.providers.openai --cov-report=term
+
+# Coverage excluding integration tests (faster)
+pytest tests/v2/ -k "not requires_api_key" --cov=instructor.v2 --cov-report=term
+
+# Detailed coverage with missing lines
+pytest tests/v2/ --cov=instructor.v2 --cov-report=term-missing
+
+# Coverage for all providers
+pytest tests/v2/ --cov=instructor.v2.providers --cov-report=term
+```
+
+### Coverage Tracking
+
+Update this section after each phase completion:
+
+**Last Updated**: [Date]
+**Overall Coverage**: [Percentage]
+
+**Handler Coverage by Provider**: [Update table above]
+**Client Coverage by Provider**: [Update table above]
+
+**Coverage Trends**:
+- Phase 1 (OpenAI): Handler [X]%, Client [X]%
+- Phase 2 (Cohere): Handler [X]%, Client [X]%
+- Phase 3 (xAI): Handler [X]%, Client [X]%
+- Phase 4+ (Others): Handler [X]%, Client [X]%
 
 ---
 
@@ -1991,6 +2165,11 @@ pytest tests/test_auto_client.py -v
 - [ ] Add provider entry to `PROVIDER_CONFIGS` in `tests/v2/test_provider_modes.py`
 - [ ] Add legacy mode mappings to `tests/v2/test_mode_normalization.py`
 - [ ] Run tests: `pytest tests/v2/ -v -k "{provider}"`
+- [ ] **Coverage**: Achieve target handler coverage (see Handler and Client Test Coverage section)
+- [ ] **Coverage**: Achieve target client coverage (see Handler and Client Test Coverage section)
+- [ ] **Coverage**: Add handler unit tests (prepare_request, parse_response, handle_reask)
+- [ ] **Coverage**: Add client factory tests (sync/async, error handling, mode validation)
+- [ ] **Coverage**: Run coverage report and verify targets met
 - [ ] Update documentation
 
 ### Global Checklist
