@@ -49,6 +49,36 @@ try:
 except ImportError:
     from_mistral = None  # type: ignore
 
+try:
+    from instructor.v2.providers.xai import from_xai
+except ImportError:
+    from_xai = None  # type: ignore
+
+try:
+    from instructor.v2.providers.groq import from_groq
+except ImportError:
+    from_groq = None  # type: ignore
+
+try:
+    from instructor.v2.providers.fireworks import from_fireworks
+except ImportError:
+    from_fireworks = None  # type: ignore
+
+try:
+    from instructor.v2.providers.cerebras import from_cerebras
+except ImportError:
+    from_cerebras = None  # type: ignore
+
+try:
+    from instructor.v2.providers.writer import from_writer
+except ImportError:
+    from_writer = None  # type: ignore
+
+try:
+    from instructor.v2.providers.bedrock import from_bedrock
+except ImportError:
+    from_bedrock = None  # type: ignore
+
 __all__ = [
     # Re-exports from instructor
     "Mode",
@@ -67,8 +97,14 @@ __all__ = [
     "ResponseParser",
     # Providers
     "from_anthropic",
+    "from_bedrock",
+    "from_cerebras",
     "from_cohere",
+    "from_fireworks",
     "from_genai",
+    "from_groq",
     "from_mistral",
     "from_openai",
+    "from_writer",
+    "from_xai",
 ]
