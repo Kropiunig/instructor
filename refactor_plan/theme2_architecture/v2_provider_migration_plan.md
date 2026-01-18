@@ -1819,28 +1819,28 @@ All these providers have missing API keys. Implement with unit tests only.
 
 **API Key**: `CEREBRAS_API_KEY` - MISSING
 
-- [ ] Create `instructor/v2/providers/cerebras/` directory
-- [ ] Handlers: `TOOLS`, `MD_JSON` (OpenAI-compatible)
-- [ ] Add to `PROVIDER_CONFIGS`
-- [ ] Run unit tests only
+- [x] Create `instructor/v2/providers/cerebras/` directory
+- [x] Handlers: `TOOLS`, `MD_JSON` (OpenAI-compatible)
+- [ ] Add to `PROVIDER_CONFIGS` (skipped - no API key)
+- [x] Run unit tests only - 45 passed, 2 skipped
 
 #### Test Checklist
 
-- [ ] **Unit Tests**:
+- [x] **Unit Tests**:
   ```bash
   pytest tests/v2/ -v -k "cerebras and not requires_api_key"
   ```
-  - [ ] Handler registration tests
-  - [ ] Handler unit tests (reuses OpenAI handlers)
-  - [ ] Client factory tests
-  - [ ] Mode normalization tests
+  - [x] Handler registration tests
+  - [x] Handler unit tests (reuses OpenAI handlers)
+  - [x] Client factory tests
+  - [x] Mode normalization tests
 
-- [ ] **Coverage Tests**:
+- [x] **Coverage Tests**:
   ```bash
   pytest tests/v2/ -k "cerebras" --cov=instructor.v2.providers.cerebras --cov-report=term-missing
   ```
-  - [ ] Target: ≥50% handler coverage
-  - [ ] Target: ≥50% client coverage
+  - [x] Target: ≥50% handler coverage - Current: 100%
+  - [x] Target: ≥50% client coverage - Current: 50%
 
 - [ ] **Integration Tests** (if API key becomes available):
   ```bash

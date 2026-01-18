@@ -67,6 +67,11 @@ try:
 except ImportError:
     from_fireworks = None  # type: ignore
 
+try:
+    from instructor.v2.providers.cerebras import from_cerebras
+except ImportError:
+    from_cerebras = None  # type: ignore
+
 __all__ = [
     # Core types
     "Provider",
@@ -84,6 +89,7 @@ __all__ = [
     "ResponseParser",
     # Providers
     "from_anthropic",
+    "from_cerebras",
     "from_cohere",
     "from_fireworks",
     "from_genai",
