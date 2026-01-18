@@ -101,4 +101,20 @@ Centralized configuration instead of scattered kwargs.
 
 ---
 
-**Detailed phase documents coming soon. Start with Theme 1 first.**
+## v2 Provider Migration
+
+**Document**: [v2_provider_migration_plan.md](./v2_provider_migration_plan.md)
+
+Detailed migration plan for all 12 non-migrated providers to the v2 registry system. Includes:
+- Phase-by-phase breakdown (one provider per phase)
+- Modes to migrate for each provider
+- Handler classes to create
+- Tests required
+- Success criteria
+
+**Already Migrated**: Anthropic, GenAI
+**Remaining**: OpenAI, Groq, Mistral, Cohere, Bedrock, Fireworks, Cerebras, Writer, xAI, Perplexity, VertexAI, Gemini
+
+---
+
+**Detailed phase documents available. Start with Phase 1 (Mode Registry) or v2 Provider Migration.**

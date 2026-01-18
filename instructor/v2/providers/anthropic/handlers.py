@@ -332,7 +332,7 @@ class AnthropicToolsHandler(AnthropicHandlerBase):
             else:
                 new_kwargs["tool_choice"] = {
                     "type": "tool",
-                    "name": response_model.__name__,
+                    "name": getattr(response_model, "__name__", "response"),
                 }
 
         return response_model, new_kwargs

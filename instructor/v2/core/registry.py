@@ -105,11 +105,11 @@ class ModeRegistry:
         """
         from instructor.core.exceptions import ConfigurationError
 
-        mode = (provider, mode)
-        if mode in self._handlers:
-            raise ConfigurationError(f"Mode {mode} is already registered")
+        mode_key = (provider, mode)
+        if mode_key in self._handlers:
+            raise ConfigurationError(f"Mode {mode_key} is already registered")
 
-        self._handlers[mode] = ModeHandlers(
+        self._handlers[mode_key] = ModeHandlers(
             request_handler=request_handler,
             reask_handler=reask_handler,
             response_parser=response_parser,
@@ -135,11 +135,11 @@ class ModeRegistry:
         """
         from instructor.core.exceptions import ConfigurationError
 
-        mode = (provider, mode)
-        if mode in self._handlers or mode in self._lazy_loaders:
-            raise ConfigurationError(f"Mode {mode} is already registered")
+        mode_key = (provider, mode)
+        if mode_key in self._handlers or mode_key in self._lazy_loaders:
+            raise ConfigurationError(f"Mode {mode_key} is already registered")
 
-        self._lazy_loaders[mode] = loader
+        self._lazy_loaders[mode_key] = loader
 
     def get_handlers(self, provider: Provider, mode: Mode) -> ModeHandlers:
         """Get all handlers for a mode.
@@ -167,23 +167,23 @@ class ModeRegistry:
         """
         # Convert provider-specific modes to generic modes
         normalized_mode = normalize_mode(provider, mode)
-        mode = (provider, normalized_mode)
+        mode_key = (provider, normalized_mode)
 
         # Check if already loaded
-        if mode in self._handlers:
-            return self._handlers[mode]
+        if mode_key in self._handlers:
+            return self._handlers[mode_key]
 
         # Try lazy loading
-        if mode in self._lazy_loaders:
-            loader = self._lazy_loaders.pop(mode)
+        if mode_key in self._lazy_loaders:
+            loader = self._lazy_loaders.pop(mode_key)
             handlers = loader()
-            self._handlers[mode] = handlers
+            self._handlers[mode_key] = handlers
             return handlers
 
         from instructor.core.exceptions import ConfigurationError
 
         raise ConfigurationError(
-            f"Mode {mode} is not registered. "
+            f"Mode {mode_key} is not registered. "
             f"Available modes: {list(self._handlers.keys())}"
         )
 
@@ -249,8 +249,8 @@ class ModeRegistry:
         """
         # Convert provider-specific modes to generic modes
         normalized_mode = normalize_mode(provider, mode)
-        mode = (provider, normalized_mode)
-        return mode in self._handlers or mode in self._lazy_loaders
+        mode_key = (provider, normalized_mode)
+        return mode_key in self._handlers or mode_key in self._lazy_loaders
 
     def get_modes_for_provider(self, provider: Provider) -> list[Mode]:
         """Get all registered modes for a provider.

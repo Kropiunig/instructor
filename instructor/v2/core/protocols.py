@@ -74,6 +74,8 @@ class ResponseParser(Protocol):
         response_model: type[T],
         validation_context: dict[str, Any] | None = None,
         strict: bool | None = None,
+        stream: bool = False,
+        is_async: bool = False,
     ) -> T:
         """Parse and validate response into model.
 
@@ -82,6 +84,8 @@ class ResponseParser(Protocol):
             response_model: Pydantic model to validate against
             validation_context: Optional context for validation
             strict: Optional strict validation mode
+            stream: Whether the response is from a streaming request
+            is_async: Whether the request is async
 
         Returns:
             Validated Pydantic model instance

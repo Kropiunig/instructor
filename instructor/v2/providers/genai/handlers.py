@@ -51,7 +51,7 @@ class GenAIHandlerBase(ModeHandler):
             and isinstance(response_model, type)
             and not issubclass(response_model, PartialBase)
         ):
-            return Partial[response_model]
+            return Partial[response_model]  # type: ignore[return-value]
         return response_model
 
     def _convert_messages_to_contents(
