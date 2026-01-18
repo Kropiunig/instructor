@@ -29,6 +29,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_api_key: mark test as requiring provider API key"
     )
+    config.addinivalue_line(
+        "markers", "provider(provider): specify provider for API key checks"
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -43,6 +46,9 @@ def check_api_key_requirement(request):
 
     # Try to get provider from test parameters
     provider = None
+    provider_marker = request.node.get_closest_marker("provider")
+    if provider_marker and provider_marker.args:
+        provider = provider_marker.args[0]
     if hasattr(request, "param"):
         provider = request.param
     elif (
@@ -67,3 +73,7 @@ def check_api_key_requirement(request):
 
         if importlib.util.find_spec(package.split(".")[0]) is None:
             pytest.skip(f"{package} package is not installed")
+
+    if request.node.get_closest_marker("asyncio"):
+        if importlib.util.find_spec("pytest_asyncio") is None:
+            pytest.skip("pytest-asyncio is not installed")

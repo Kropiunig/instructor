@@ -68,6 +68,8 @@ class ModeHandler(ABC):
         response_model: type[BaseModel],
         validation_context: dict[str, Any] | None = None,
         strict: bool | None = None,
+        stream: bool = False,
+        is_async: bool = False,
     ) -> BaseModel:
         """Parse API response into validated Pydantic model.
 

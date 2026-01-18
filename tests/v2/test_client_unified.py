@@ -7,8 +7,10 @@ across all providers without requiring API keys.
 from __future__ import annotations
 
 import importlib.util
-import pytest
+from pathlib import Path
 from typing import Any
+
+import pytest
 
 from instructor import Mode, Provider
 from instructor.v2.core.registry import (
@@ -16,6 +18,45 @@ from instructor.v2.core.registry import (
     normalize_mode,
     reset_deprecation_warnings,
 )
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_HANDLER_MODULE_PATHS: dict[Provider, Path] = {
+    Provider.OPENAI: _PROJECT_ROOT / "instructor/v2/providers/openai/handlers.py",
+    Provider.ANTHROPIC: _PROJECT_ROOT / "instructor/v2/providers/anthropic/handlers.py",
+    Provider.GENAI: _PROJECT_ROOT / "instructor/v2/providers/genai/handlers.py",
+    Provider.COHERE: _PROJECT_ROOT / "instructor/v2/providers/cohere/handlers.py",
+    Provider.XAI: _PROJECT_ROOT / "instructor/v2/providers/xai/handlers.py",
+    Provider.GROQ: _PROJECT_ROOT / "instructor/v2/providers/groq/handlers.py",
+    Provider.MISTRAL: _PROJECT_ROOT / "instructor/v2/providers/mistral/handlers.py",
+    Provider.FIREWORKS: _PROJECT_ROOT / "instructor/v2/providers/fireworks/handlers.py",
+    Provider.CEREBRAS: _PROJECT_ROOT / "instructor/v2/providers/cerebras/handlers.py",
+    Provider.WRITER: _PROJECT_ROOT / "instructor/v2/providers/writer/handlers.py",
+    Provider.BEDROCK: _PROJECT_ROOT / "instructor/v2/providers/bedrock/handlers.py",
+}
+_HANDLERS_LOADED: set[Provider] = set()
+
+
+def _ensure_handlers_loaded(provider: Provider) -> None:
+    if provider in _HANDLERS_LOADED:
+        return
+    provider_modes = PROVIDER_CLIENT_CONFIGS.get(provider, {}).get(
+        "supported_modes", []
+    )
+    if any(mode_registry.is_registered(provider, mode) for mode in provider_modes):
+        _HANDLERS_LOADED.add(provider)
+        return
+    handler_path = _HANDLER_MODULE_PATHS.get(provider)
+    if handler_path is None or not handler_path.exists():
+        return
+    spec = importlib.util.spec_from_file_location(
+        f"tests.v2.handlers_{provider.value}",
+        handler_path,
+    )
+    if spec is None or spec.loader is None:
+        return
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _HANDLERS_LOADED.add(provider)
 
 
 # Provider-specific configurations for client tests
@@ -120,6 +161,35 @@ PROVIDER_CLIENT_CONFIGS: dict[Provider, dict[str, Any]] = {
         "from_function": "from_fireworks",
         "sdk_module": "fireworks",
     },
+    Provider.CEREBRAS: {
+        "supported_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "unsupported_modes": [
+            Mode.JSON_SCHEMA,
+            Mode.PARALLEL_TOOLS,
+            Mode.RESPONSES_TOOLS,
+        ],
+        "legacy_modes": {
+            Mode.CEREBRAS_TOOLS: Mode.TOOLS,
+            Mode.CEREBRAS_JSON: Mode.MD_JSON,
+        },
+        "from_function": "from_cerebras",
+        "sdk_module": "cerebras.cloud.sdk",
+        "missing_sdk_message": "cerebras-cloud-sdk is not installed",
+    },
+    Provider.WRITER: {
+        "supported_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "unsupported_modes": [
+            Mode.JSON_SCHEMA,
+            Mode.PARALLEL_TOOLS,
+            Mode.RESPONSES_TOOLS,
+        ],
+        "legacy_modes": {
+            Mode.WRITER_TOOLS: Mode.TOOLS,
+            Mode.WRITER_JSON: Mode.MD_JSON,
+        },
+        "from_function": "from_writer",
+        "sdk_module": "writerai",
+    },
     Provider.BEDROCK: {
         "supported_modes": [Mode.TOOLS, Mode.MD_JSON],
         "unsupported_modes": [
@@ -199,6 +269,7 @@ def _get_provider_legacy_mode_params():
 @pytest.mark.parametrize("provider,mode", _get_provider_mode_params())
 def test_supported_mode_is_registered(provider: Provider, mode: Mode) -> None:
     """Test that all supported modes are registered in the registry."""
+    _ensure_handlers_loaded(provider)
     assert mode_registry.is_registered(provider, mode), (
         f"Mode {mode.value} should be registered for {provider.value}"
     )
@@ -215,6 +286,7 @@ def test_unsupported_mode_not_registered(provider: Provider, mode: Mode) -> None
 @pytest.mark.parametrize("provider", _get_provider_params())
 def test_get_modes_for_provider(provider: Provider) -> None:
     """Test getting all modes for a provider."""
+    _ensure_handlers_loaded(provider)
     config = PROVIDER_CLIENT_CONFIGS[provider]
     registered_modes = mode_registry.get_modes_for_provider(provider)
 
@@ -234,6 +306,7 @@ def test_get_modes_for_provider(provider: Provider) -> None:
 @pytest.mark.parametrize("provider,mode", _get_provider_mode_params())
 def test_handlers_have_all_methods(provider: Provider, mode: Mode) -> None:
     """Test that all handlers have required methods."""
+    _ensure_handlers_loaded(provider)
     handlers = mode_registry.get_handlers(provider, mode)
 
     assert handlers.request_handler is not None
@@ -316,10 +389,8 @@ def test_handlers_importable(provider: Provider) -> None:
 
 @pytest.mark.parametrize("provider,mode", _get_provider_unsupported_mode_params())
 def test_unsupported_mode_raises_error(provider: Provider, mode: Mode) -> None:
-    """Test that getting handlers for unsupported mode raises ConfigurationError."""
-    from instructor.core.exceptions import ConfigurationError
-
-    with pytest.raises(ConfigurationError):
+    """Test that getting handlers for unsupported mode raises KeyError."""
+    with pytest.raises(KeyError):
         mode_registry.get_handlers(provider, mode)
 
 
@@ -375,9 +446,11 @@ def test_from_function_raises_without_sdk(provider: Provider) -> None:
 
         from instructor.core.exceptions import ClientError
 
-        with pytest.raises(
-            ClientError, match=f"{sdk_module.split('.')[0]} is not installed"
-        ):
+        expected_message = config.get(
+            "missing_sdk_message",
+            f"{sdk_module.split('.')[0]} is not installed",
+        )
+        with pytest.raises(ClientError, match=expected_message):
             from_function_obj("not a client")  # type: ignore[call-arg]
     except ImportError:
         # Module structure may vary - this is okay

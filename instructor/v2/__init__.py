@@ -82,6 +82,28 @@ try:
 except ImportError:
     from_bedrock = None  # type: ignore
 
+# Import handlers directly so modes are registered even if SDKs are missing.
+_HANDLER_MODULES = (
+    "instructor.v2.providers.anthropic.handlers",
+    "instructor.v2.providers.genai.handlers",
+    "instructor.v2.providers.openai.handlers",
+    "instructor.v2.providers.cohere.handlers",
+    "instructor.v2.providers.xai.handlers",
+    "instructor.v2.providers.groq.handlers",
+    "instructor.v2.providers.mistral.handlers",
+    "instructor.v2.providers.fireworks.handlers",
+    "instructor.v2.providers.cerebras.handlers",
+    "instructor.v2.providers.writer.handlers",
+    "instructor.v2.providers.bedrock.handlers",
+)
+for _module_path in _HANDLER_MODULES:
+    try:
+        __import__(_module_path, fromlist=["__name__"])
+    except Exception:
+        # Handler modules should be importable without SDKs.
+        # Skip if an unexpected import error occurs.
+        pass
+
 __all__ = [
     # Core types
     "Provider",

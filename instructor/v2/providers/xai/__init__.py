@@ -3,6 +3,9 @@
 Provides Instructor integration for xAI's Grok models using the v2 registry system.
 """
 
-from instructor.v2.providers.xai.client import from_xai
+try:
+    from instructor.v2.providers.xai.client import from_xai
+except ImportError:
+    from_xai = None  # type: ignore
 
 __all__ = ["from_xai"]

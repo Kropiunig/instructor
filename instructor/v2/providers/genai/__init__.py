@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from . import handlers  # noqa: F401 - Import to trigger handler registration
-from .client import from_genai
+
+try:
+    from .client import from_genai
+except ImportError:
+    from_genai = None  # type: ignore
 
 __all__ = ["from_genai"]

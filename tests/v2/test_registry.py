@@ -10,7 +10,7 @@ from instructor.v2.core.decorators import register_mode_handler
 def test_registry_registration():
     """Test basic registration."""
 
-    @register_mode_handler(Provider.OPENAI, Mode.TOOLS)
+    @register_mode_handler(Provider.DEEPSEEK, Mode.JSON)
     class TestHandler:
         def prepare_request(self, response_model, kwargs):
             return response_model, kwargs
@@ -22,10 +22,10 @@ def test_registry_registration():
             return response_model()
 
     # Check it's registered
-    assert mode_registry.is_registered(Provider.OPENAI, Mode.TOOLS)
+    assert mode_registry.is_registered(Provider.DEEPSEEK, Mode.JSON)
 
     # Get handlers
-    handlers = mode_registry.get_handlers(Provider.OPENAI, Mode.TOOLS)
+    handlers = mode_registry.get_handlers(Provider.DEEPSEEK, Mode.JSON)
     assert handlers.request_handler is not None
     assert handlers.reask_handler is not None
     assert handlers.response_parser is not None
@@ -34,7 +34,7 @@ def test_registry_registration():
 def test_registry_get_handler():
     """Test getting specific handler types."""
 
-    @register_mode_handler(Provider.GEMINI, Mode.JSON)
+    @register_mode_handler(Provider.OPENROUTER, Mode.TOOLS)
     class TestHandler:
         def prepare_request(self, response_model, _kwargs):
             return response_model, {"test": "request"}
@@ -46,11 +46,13 @@ def test_registry_get_handler():
             return response_model()
 
     # Get individual handlers
-    request_handler = mode_registry.get_handler(Provider.GEMINI, Mode.JSON, "request")
+    request_handler = mode_registry.get_handler(
+        Provider.OPENROUTER, Mode.TOOLS, "request"
+    )
     result = request_handler(None, {})
     assert result[1]["test"] == "request"
 
-    reask_handler = mode_registry.get_handler(Provider.GEMINI, Mode.JSON, "reask")
+    reask_handler = mode_registry.get_handler(Provider.OPENROUTER, Mode.TOOLS, "reask")
     result = reask_handler({}, None, None)
     assert result["test"] == "reask"
 
@@ -82,7 +84,7 @@ def test_registry_list_modes():
 def test_registry_not_registered():
     """Test error when mode not registered."""
     with pytest.raises(KeyError, match="not registered"):
-        mode_registry.get_handlers(Provider.COHERE, Mode.TOOLS)
+        mode_registry.get_handlers(Provider.GEMINI, Mode.JSON_SCHEMA)
 
 
 def test_registry_invalid_handler_type():

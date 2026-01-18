@@ -99,7 +99,11 @@ def test_provider_in_mode_providers(provider: Provider) -> None:
 
 
 # Providers that inherit from OpenAI handlers
-OPENAI_COMPATIBLE_PROVIDERS = [Provider.GROQ, Provider.FIREWORKS]
+OPENAI_COMPATIBLE_PROVIDERS = [
+    Provider.GROQ,
+    Provider.FIREWORKS,
+    Provider.CEREBRAS,
+]
 
 
 @pytest.mark.parametrize(
@@ -120,6 +124,10 @@ def test_tools_handler_inherits_from_openai(provider: Provider) -> None:
         from instructor.v2.providers.fireworks.handlers import FireworksToolsHandler
 
         assert issubclass(FireworksToolsHandler, OpenAIToolsHandler)
+    elif provider == Provider.CEREBRAS:
+        from instructor.v2.providers.cerebras.handlers import CerebrasToolsHandler
+
+        assert issubclass(CerebrasToolsHandler, OpenAIToolsHandler)
 
 
 @pytest.mark.parametrize(
@@ -140,6 +148,10 @@ def test_md_json_handler_inherits_from_openai(provider: Provider) -> None:
         from instructor.v2.providers.fireworks.handlers import FireworksMDJSONHandler
 
         assert issubclass(FireworksMDJSONHandler, OpenAIMDJSONHandler)
+    elif provider == Provider.CEREBRAS:
+        from instructor.v2.providers.cerebras.handlers import CerebrasMDJSONHandler
+
+        assert issubclass(CerebrasMDJSONHandler, OpenAIMDJSONHandler)
 
 
 # ============================================================================

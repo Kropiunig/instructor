@@ -187,9 +187,7 @@ class ModeRegistry:
             self._handlers[mode_key] = handlers
             return handlers
 
-        from instructor.core.exceptions import ConfigurationError
-
-        raise ConfigurationError(
+        raise KeyError(
             f"Mode {mode_key} is not registered. "
             f"Available modes: {list(self._handlers.keys())}"
         )
@@ -237,9 +235,7 @@ class ModeRegistry:
         elif handler_type == "response":
             return handlers.response_parser
         else:
-            from instructor.core.exceptions import ConfigurationError
-
-            raise ConfigurationError(
+            raise ValueError(
                 f"Invalid handler_type: {handler_type}. "
                 f"Must be 'request', 'reask', or 'response'"
             )
@@ -342,3 +338,36 @@ class ModeRegistry:
 
 # Global registry instance
 mode_registry = ModeRegistry()
+
+_DEFAULT_HANDLERS_LOADED = False
+_DEFAULT_HANDLER_MODULES = (
+    "instructor.v2.providers.anthropic.handlers",
+    "instructor.v2.providers.genai.handlers",
+    "instructor.v2.providers.openai.handlers",
+    "instructor.v2.providers.cohere.handlers",
+    "instructor.v2.providers.xai.handlers",
+    "instructor.v2.providers.groq.handlers",
+    "instructor.v2.providers.mistral.handlers",
+    "instructor.v2.providers.fireworks.handlers",
+    "instructor.v2.providers.cerebras.handlers",
+    "instructor.v2.providers.writer.handlers",
+    "instructor.v2.providers.bedrock.handlers",
+)
+
+
+def _load_default_handlers() -> None:
+    """Load built-in handler modules to register modes."""
+    global _DEFAULT_HANDLERS_LOADED
+    if _DEFAULT_HANDLERS_LOADED:
+        return
+    for module_path in _DEFAULT_HANDLER_MODULES:
+        try:
+            __import__(module_path, fromlist=["__name__"])
+        except Exception:
+            # Handlers should be importable without SDKs.
+            # Skip if an unexpected import error occurs.
+            continue
+    _DEFAULT_HANDLERS_LOADED = True
+
+
+_load_default_handlers()

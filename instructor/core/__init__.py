@@ -13,6 +13,7 @@ from .exceptions import (
     AsyncValidationError,
     ResponseParsingError,
     MultimodalError,
+    FailedAttempt,
 )
 from .hooks import Hooks, HookName
 from .patch import patch, apatch
@@ -33,6 +34,7 @@ __all__ = [
     "AsyncValidationError",
     "ResponseParsingError",
     "MultimodalError",
+    "FailedAttempt",
     "Hooks",
     "HookName",
     "patch",

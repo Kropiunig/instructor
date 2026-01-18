@@ -3,6 +3,7 @@
 Verifies that from_provider("anthropic/...") routes to v2 implementation.
 """
 
+import importlib.util
 import warnings
 
 import pytest
@@ -41,6 +42,8 @@ def test_from_provider_anthropic_async():
 
 def test_old_from_anthropic_deprecation_warning():
     """Test that old from_anthropic() emits deprecation warning with correct v2 example."""
+    if importlib.util.find_spec("anthropic") is None:
+        pytest.skip("anthropic package is not installed")
     import anthropic
     from instructor import from_anthropic
 

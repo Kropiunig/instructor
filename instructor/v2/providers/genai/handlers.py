@@ -112,12 +112,11 @@ class GenAIHandlerBase(ModeHandler):
     def parse_response(
         self,
         response: Any,
-        *,
         response_model: type[BaseModel] | None,
-        validation_context: dict[str, Any] | None,
-        strict: bool | None,
-        stream: bool,
-        is_async: bool,
+        validation_context: dict[str, Any] | None = None,
+        strict: bool | None = None,
+        stream: bool = False,
+        is_async: bool = False,
     ) -> BaseModel | Any:
         if response_model is None:
             return response

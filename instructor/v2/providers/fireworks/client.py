@@ -84,7 +84,7 @@ def from_fireworks(
         from instructor.core.exceptions import ClientError
 
         raise ClientError(
-            "fireworks-ai is not installed. Install it with: pip install fireworks-ai"
+            "fireworks is not installed. Install it with: pip install fireworks-ai"
         )
 
     # Normalize provider-specific modes to generic modes

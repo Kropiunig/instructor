@@ -30,6 +30,8 @@ _HANDLER_MODULE_PATHS: dict[Provider, Path] = {
     Provider.MISTRAL: _PROJECT_ROOT / "instructor/v2/providers/mistral/handlers.py",
     Provider.FIREWORKS: _PROJECT_ROOT / "instructor/v2/providers/fireworks/handlers.py",
     Provider.BEDROCK: _PROJECT_ROOT / "instructor/v2/providers/bedrock/handlers.py",
+    Provider.CEREBRAS: _PROJECT_ROOT / "instructor/v2/providers/cerebras/handlers.py",
+    Provider.WRITER: _PROJECT_ROOT / "instructor/v2/providers/writer/handlers.py",
 }
 _HANDLERS_LOADED: set[Provider] = set()
 
@@ -145,6 +147,18 @@ PROVIDER_CONFIGS = {
         "basic_modes": [Mode.TOOLS, Mode.MD_JSON],
         "async_modes": [Mode.TOOLS, Mode.MD_JSON],
     },
+    Provider.CEREBRAS: {
+        "provider_string": "cerebras/llama3.1-70b",
+        "modes": [Mode.TOOLS, Mode.MD_JSON],
+        "basic_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "async_modes": [Mode.TOOLS, Mode.MD_JSON],
+    },
+    Provider.WRITER: {
+        "provider_string": "writer/palmyra-x-004",
+        "modes": [Mode.TOOLS, Mode.MD_JSON],
+        "basic_modes": [Mode.TOOLS, Mode.MD_JSON],
+        "async_modes": [Mode.TOOLS, Mode.MD_JSON],
+    },
 }
 
 
@@ -246,6 +260,7 @@ async def test_mode_async_extraction(provider: Provider, mode: Mode):
     assert response.answer == 8.0
 
 
+@pytest.mark.provider(Provider.ANTHROPIC)
 @pytest.mark.requires_api_key
 def test_anthropic_parallel_tools_extraction():
     """Test PARALLEL_TOOLS mode extraction (Anthropic-specific)."""
@@ -280,6 +295,7 @@ def test_anthropic_parallel_tools_extraction():
         Mode.ANTHROPIC_REASONING_TOOLS,
     ],
 )
+@pytest.mark.provider(Provider.ANTHROPIC)
 @pytest.mark.requires_api_key
 def test_anthropic_tools_with_thinking(mode: Mode):
     """Test tools modes with thinking parameter (Anthropic-specific)."""
@@ -305,6 +321,7 @@ def test_anthropic_tools_with_thinking(mode: Mode):
     assert response.answer == 10.0
 
 
+@pytest.mark.provider(Provider.ANTHROPIC)
 @pytest.mark.requires_api_key
 def test_anthropic_reasoning_tools_deprecation():
     """Test that ANTHROPIC_REASONING_TOOLS shows deprecation warning."""

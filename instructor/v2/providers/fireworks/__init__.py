@@ -4,6 +4,9 @@ Fireworks uses an OpenAI-compatible API, so the handlers inherit from OpenAI.
 Supports TOOLS and MD_JSON modes.
 """
 
-from instructor.v2.providers.fireworks.client import from_fireworks
+try:
+    from instructor.v2.providers.fireworks.client import from_fireworks
+except ImportError:
+    from_fireworks = None  # type: ignore
 
 __all__ = ["from_fireworks"]
