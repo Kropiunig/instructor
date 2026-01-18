@@ -57,6 +57,11 @@ try:
 except ImportError:
     from_groq = None  # type: ignore
 
+try:
+    from instructor.v2.providers.mistral import from_mistral
+except ImportError:
+    from_mistral = None  # type: ignore
+
 __all__ = [
     # Core types
     "Provider",
@@ -77,6 +82,7 @@ __all__ = [
     "from_cohere",
     "from_genai",
     "from_groq",
+    "from_mistral",
     "from_openai",
     "from_xai",
 ]
