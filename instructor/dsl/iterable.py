@@ -10,7 +10,7 @@ from typing import (
     TYPE_CHECKING,
 )
 import json
-import time
+
 from pydantic import BaseModel, Field, create_model
 from ..mode import Mode
 from ..utils import extract_json_from_stream, extract_json_from_stream_async
@@ -370,33 +370,6 @@ class IterableBase:
             try:
                 if mode in {Mode.COHERE_TOOLS, Mode.COHERE_JSON_SCHEMA}:
                     event_type = getattr(chunk, "event_type", None)
-                    # region agent log
-                    with open(
-                        "/Users/jasonliu/dev/instructor/.cursor/debug.log", "a"
-                    ) as _log:
-                        _log.write(
-                            json.dumps(
-                                {
-                                    "sessionId": "debug-session",
-                                    "runId": "streaming-pre",
-                                    "hypothesisId": "H7",
-                                    "location": "instructor/dsl/iterable.py:extract_json_async",
-                                    "message": "cohere_stream_chunk",
-                                    "data": {
-                                        "event_type": event_type,
-                                        "chunk_type": getattr(chunk, "type", None),
-                                        "chunk_class": type(chunk).__name__,
-                                        "has_text": hasattr(chunk, "text"),
-                                        "has_tool_call_delta": hasattr(
-                                            chunk, "tool_call_delta"
-                                        ),
-                                    },
-                                    "timestamp": int(time.time() * 1000),
-                                }
-                            )
-                            + "\n"
-                        )
-                    # endregion agent log
                     if event_type == "text-generation":
                         if text := getattr(chunk, "text", None):
                             if not json_started:
@@ -412,28 +385,6 @@ class IterableBase:
                                     continue
                                 json_started = True
                                 text = text[json_start:]
-                            # region agent log
-                            with open(
-                                "/Users/jasonliu/dev/instructor/.cursor/debug.log", "a"
-                            ) as _log:
-                                _log.write(
-                                    json.dumps(
-                                        {
-                                            "sessionId": "debug-session",
-                                            "runId": "streaming-pre",
-                                            "hypothesisId": "H8",
-                                            "location": "instructor/dsl/iterable.py:extract_json_async",
-                                            "message": "cohere_stream_yield_text",
-                                            "data": {
-                                                "text_len": len(text),
-                                                "json_started": json_started,
-                                            },
-                                            "timestamp": int(time.time() * 1000),
-                                        }
-                                    )
-                                    + "\n"
-                                )
-                            # endregion agent log
                             yield text
                     elif event_type == "tool-calls-chunk":
                         delta = getattr(chunk, "tool_call_delta", None)
@@ -454,28 +405,6 @@ class IterableBase:
                                     continue
                                 json_started = True
                                 args = args[json_start:]
-                            # region agent log
-                            with open(
-                                "/Users/jasonliu/dev/instructor/.cursor/debug.log", "a"
-                            ) as _log:
-                                _log.write(
-                                    json.dumps(
-                                        {
-                                            "sessionId": "debug-session",
-                                            "runId": "streaming-pre",
-                                            "hypothesisId": "H8",
-                                            "location": "instructor/dsl/iterable.py:extract_json_async",
-                                            "message": "cohere_stream_yield_args",
-                                            "data": {
-                                                "args_len": len(args),
-                                                "json_started": json_started,
-                                            },
-                                            "timestamp": int(time.time() * 1000),
-                                        }
-                                    )
-                                    + "\n"
-                                )
-                            # endregion agent log
                             yield args
                         elif text := getattr(chunk, "text", None):
                             if not json_started:
@@ -491,28 +420,6 @@ class IterableBase:
                                     continue
                                 json_started = True
                                 text = text[json_start:]
-                            # region agent log
-                            with open(
-                                "/Users/jasonliu/dev/instructor/.cursor/debug.log", "a"
-                            ) as _log:
-                                _log.write(
-                                    json.dumps(
-                                        {
-                                            "sessionId": "debug-session",
-                                            "runId": "streaming-pre",
-                                            "hypothesisId": "H8",
-                                            "location": "instructor/dsl/iterable.py:extract_json_async",
-                                            "message": "cohere_stream_yield_fallback_text",
-                                            "data": {
-                                                "text_len": len(text),
-                                                "json_started": json_started,
-                                            },
-                                            "timestamp": int(time.time() * 1000),
-                                        }
-                                    )
-                                    + "\n"
-                                )
-                            # endregion agent log
                             yield text
                     elif event_type == "tool-calls-generation":
                         tool_calls = getattr(chunk, "tool_calls", None)
@@ -531,28 +438,6 @@ class IterableBase:
                                     continue
                                 json_started = True
                                 args = args[json_start:]
-                            # region agent log
-                            with open(
-                                "/Users/jasonliu/dev/instructor/.cursor/debug.log", "a"
-                            ) as _log:
-                                _log.write(
-                                    json.dumps(
-                                        {
-                                            "sessionId": "debug-session",
-                                            "runId": "streaming-pre",
-                                            "hypothesisId": "H8",
-                                            "location": "instructor/dsl/iterable.py:extract_json_async",
-                                            "message": "cohere_stream_yield_tool_calls",
-                                            "data": {
-                                                "args_len": len(args),
-                                                "json_started": json_started,
-                                            },
-                                            "timestamp": int(time.time() * 1000),
-                                        }
-                                    )
-                                    + "\n"
-                                )
-                            # endregion agent log
                             yield args
                         elif text := getattr(chunk, "text", None):
                             if not json_started:
