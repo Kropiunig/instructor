@@ -31,7 +31,9 @@ def _get_provider_mode_params():
 def _get_provider_params():
     """Generate provider parameters."""
     providers = {provider for provider, _ in get_registered_provider_mode_pairs()}
-    return [pytest.param(provider, id=provider.value) for provider in providers]
+    # Sort by value for deterministic ordering across pytest-xdist workers
+    sorted_providers = sorted(providers, key=lambda p: p.value)
+    return [pytest.param(provider, id=provider.value) for provider in sorted_providers]
 
 
 # ============================================================================
