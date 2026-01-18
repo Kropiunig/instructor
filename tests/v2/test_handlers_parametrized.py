@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from collections.abc import Iterable
 
 import pytest
 from pydantic import ValidationError
@@ -164,8 +163,8 @@ def _skip_if_missing(module: str) -> None:
         pytest.skip(f"{module} is not installed")
 
 
-def _provider_mode_params() -> Iterable[pytest.ParametrizeArg]:
-    params: list[pytest.ParametrizeArg] = []
+def _provider_mode_params():
+    params = []
     for provider, modes in PROVIDER_HANDLER_MODES.items():
         for mode in modes:
             params.append(
@@ -295,7 +294,7 @@ class MockResponseBuilder:
         if self.provider == Provider.MISTRAL:
             # Create a mock that works with dump_message
             # dump_message expects a ChatCompletionMessage-like object
-            class MockMessage:
+            class MistralMockMessage:
                 def __init__(self):
                     self.role = "assistant"
                     self.content = "Invalid response"
@@ -308,11 +307,25 @@ class MockResponseBuilder:
                         "tool_calls": self.tool_calls,
                     }
 
-            message = MockMessage()
+            message = MistralMockMessage()
             choice = SimpleNamespace(message=message, finish_reason="stop")
             return SimpleNamespace(choices=[choice])
         if self.provider == Provider.WRITER:
-            message = SimpleNamespace(content="Invalid response", tool_calls=[])
+
+            class WriterMockMessage:
+                def __init__(self):
+                    self.role = "assistant"
+                    self.content = "Invalid response"
+                    self.tool_calls = []
+
+                def model_dump(self):
+                    return {
+                        "role": self.role,
+                        "content": self.content,
+                        "tool_calls": self.tool_calls,
+                    }
+
+            message = WriterMockMessage()
             choice = SimpleNamespace(message=message, finish_reason="stop")
             return SimpleNamespace(choices=[choice])
         if self.provider == Provider.BEDROCK:
