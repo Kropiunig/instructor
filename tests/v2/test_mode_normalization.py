@@ -103,9 +103,14 @@ def test_handlers_registered_with_generic_modes(
     if not registered_modes:
         pytest.skip(f"No handlers registered for {provider.value} yet")
 
+    # Check that each expected mode that's registered has a working handler
     for mode in expected_modes:
         if mode in registered_modes:
-            assert mode_registry.is_registered(provider, mode)
+            # Verify the handler can be retrieved (not just registered)
+            handler = mode_registry.get_handler(provider, mode)
+            assert handler is not None, (
+                f"Handler for {provider.value}/{mode.value} is None"
+            )
 
 
 @pytest.mark.parametrize(
@@ -182,22 +187,30 @@ def test_deprecated_mode_emits_warning(
         assert result == expected_replacement
 
 
-@pytest.mark.parametrize("provider", [Provider.OPENAI, Provider.ANTHROPIC])
-def test_deprecated_mode_warning_only_once(provider: Provider):
+@pytest.mark.parametrize(
+    "provider,deprecated_mode1,deprecated_mode2",
+    [
+        (Provider.OPENAI, Mode.FUNCTIONS, Mode.TOOLS_STRICT),
+        (Provider.ANTHROPIC, Mode.ANTHROPIC_TOOLS, Mode.ANTHROPIC_JSON),
+    ],
+)
+def test_deprecated_mode_warning_only_once(
+    provider: Provider, deprecated_mode1: Mode, deprecated_mode2: Mode
+):
     """Test that deprecation warning is only shown once per mode."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
 
         # First call should warn
-        normalize_mode(provider, Mode.FUNCTIONS)
+        normalize_mode(provider, deprecated_mode1)
         assert len(w) == 1
 
         # Second call should not warn again
-        normalize_mode(provider, Mode.FUNCTIONS)
+        normalize_mode(provider, deprecated_mode1)
         assert len(w) == 1  # Still only 1 warning
 
         # Different mode should warn
-        normalize_mode(provider, Mode.TOOLS_STRICT)
+        normalize_mode(provider, deprecated_mode2)
         assert len(w) == 2
 
 
