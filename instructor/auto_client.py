@@ -6,6 +6,8 @@ from instructor.models import KnownModelName
 from instructor.cache import BaseCache
 import warnings
 import logging
+import json
+import time
 
 # Type alias for the return type
 InstructorType = Union[Instructor, AsyncInstructor]
@@ -411,19 +413,21 @@ def from_provider(
     elif provider == "anthropic":
         try:
             import anthropic
-            from instructor import from_anthropic  # type: ignore[attr-defined]  # type: ignore[attr-defined]
+            from instructor.v2 import from_anthropic
 
             client = (
                 anthropic.AsyncAnthropic(api_key=api_key)
                 if async_client
                 else anthropic.Anthropic(api_key=api_key)
             )
-            max_tokens = kwargs.pop("max_tokens", 4096)
+            # Set default max_tokens if not provided (like v1)
+            if "max_tokens" not in kwargs:
+                kwargs["max_tokens"] = 4096
+            # Use Mode.TOOLS instead of Mode.ANTHROPIC_TOOLS
             result = from_anthropic(
                 client,
                 model=model_name,
-                mode=mode if mode else instructor.Mode.ANTHROPIC_TOOLS,
-                max_tokens=max_tokens,
+                mode=mode if mode else instructor.Mode.TOOLS,
                 **kwargs,
             )
             logger.info(
@@ -452,7 +456,7 @@ def from_provider(
         # Import google-genai package - catch ImportError only for actual imports
         try:
             import google.genai as genai
-            from instructor import from_genai  # type: ignore[attr-defined]
+            from instructor.v2 import from_genai
         except ImportError as e:
             from .core.exceptions import ConfigurationError
 
@@ -487,21 +491,16 @@ def from_provider(
                 api_key=api_key,
                 **client_kwargs,
             )  # type: ignore
-            if async_client:
-                result = from_genai(
-                    client,
-                    use_async=True,
-                    model=model_name,
-                    mode=mode if mode else instructor.Mode.GENAI_TOOLS,
-                    **kwargs,
-                )  # type: ignore
-            else:
-                result = from_genai(
-                    client,
-                    model=model_name,
-                    mode=mode if mode else instructor.Mode.GENAI_TOOLS,
-                    **kwargs,
-                )  # type: ignore
+            # Use v2 from_genai with generic Mode.TOOLS as default
+            # Extract model from kwargs if present, otherwise use model_name
+            model_param = kwargs.pop("model", model_name)
+            result = from_genai(
+                client,
+                mode=mode if mode else instructor.Mode.TOOLS,
+                use_async=async_client,
+                model=model_param,
+                **kwargs,
+            )
             logger.info(
                 "Client initialized",
                 extra={**provider_info, "status": "success"},
@@ -564,14 +563,41 @@ def from_provider(
     elif provider == "cohere":
         try:
             import cohere
-            from instructor import from_cohere  # type: ignore[attr-defined]
+            from instructor.v2 import from_cohere
 
+            # region agent log
+            with open("/Users/jasonliu/dev/instructor/.cursor/debug.log", "a") as _log:
+                _log.write(
+                    json.dumps(
+                        {
+                            "sessionId": "debug-session",
+                            "runId": "streaming-pre",
+                            "hypothesisId": "H5",
+                            "location": "instructor/auto_client.py:from_provider",
+                            "message": "cohere_client_construction",
+                            "data": {
+                                "async_client": bool(async_client),
+                                "has_async_client_v2": hasattr(cohere, "AsyncClientV2"),
+                                "has_client_v2": hasattr(cohere, "ClientV2"),
+                            },
+                            "timestamp": int(time.time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+            # endregion agent log
             client = (
                 cohere.AsyncClientV2(api_key=api_key)
                 if async_client
                 else cohere.ClientV2(api_key=api_key)
             )
-            result = from_cohere(client, model=model_name, **kwargs)
+            # Use Mode.TOOLS as default for Cohere
+            result = from_cohere(
+                client,
+                mode=mode if mode else instructor.Mode.TOOLS,
+                model=model_name,
+                **kwargs,
+            )
             logger.info(
                 "Client initialized",
                 extra={**provider_info, "status": "success"},
@@ -1099,16 +1125,17 @@ def from_provider(
         try:
             from xai_sdk.sync.client import Client as SyncClient
             from xai_sdk.aio.client import Client as AsyncClient
-            from instructor import from_xai  # type: ignore[attr-defined]
+            from instructor.v2 import from_xai
 
             client = (
                 AsyncClient(api_key=api_key)
                 if async_client
                 else SyncClient(api_key=api_key)
             )
+            # Use Mode.TOOLS instead of Mode.XAI_TOOLS (v2 uses generic modes)
             result = from_xai(
                 client,
-                mode=mode if mode else instructor.Mode.XAI_JSON,
+                mode=mode if mode else instructor.Mode.TOOLS,
                 model=model_name,
                 **kwargs,
             )

@@ -1,15 +1,13 @@
 """Instructor V2: Registry-based architecture.
 
 This module provides the v2 implementation with a registry-based handler system.
-Provider-specific functions will be added in subsequent PRs.
 
 Usage:
     from instructor import Mode
-    from instructor.v2 import mode_registry
+    from instructor.v2 import from_anthropic, from_openai
 
-    # Check if a mode is registered
-    if mode_registry.is_registered(Provider.ANTHROPIC, Mode.TOOLS):
-        handlers = mode_registry.get_handlers(Provider.ANTHROPIC, Mode.TOOLS)
+    client = from_anthropic(anthropic_client, mode=Mode.TOOLS)
+    client = from_openai(openai_client, mode=Mode.TOOLS)
 """
 
 from instructor import Mode, Provider
@@ -23,6 +21,17 @@ from instructor.v2.core.registry import (
     mode_registry,
     normalize_mode,
 )
+
+# Import providers (will auto-register modes)
+try:
+    from instructor.v2.providers.anthropic import from_anthropic
+except ImportError:
+    from_anthropic = None  # type: ignore
+
+try:
+    from instructor.v2.providers.openai import from_openai
+except ImportError:
+    from_openai = None  # type: ignore
 
 __all__ = [
     # Re-exports from instructor
@@ -40,4 +49,7 @@ __all__ = [
     "ReaskHandler",
     "RequestHandler",
     "ResponseParser",
+    # Providers
+    "from_anthropic",
+    "from_openai",
 ]
