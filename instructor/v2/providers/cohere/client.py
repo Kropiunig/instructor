@@ -7,8 +7,6 @@ Supports both Cohere V1 and V2 client APIs.
 from __future__ import annotations
 
 import inspect
-import json
-import time
 from collections.abc import Awaitable
 from typing import Any, cast, overload
 
@@ -127,27 +125,6 @@ def from_cohere(
     else:
         client_version = "v1"
 
-    # region agent log
-    with open("/Users/jasonliu/dev/instructor/.cursor/debug.log", "a") as _log:
-        _log.write(
-            json.dumps(
-                {
-                    "sessionId": "debug-session",
-                    "runId": "streaming-pre",
-                    "hypothesisId": "H6",
-                    "location": "instructor/v2/providers/cohere/client.py:from_cohere",
-                    "message": "cohere_from_cohere_client_version",
-                    "data": {
-                        "client_type": type(client).__name__,
-                        "client_version": client_version,
-                        "mode": str(mode),
-                    },
-                    "timestamp": int(time.time() * 1000),
-                }
-            )
-            + "\n"
-        )
-    # endregion agent log
     kwargs["_cohere_client_version"] = client_version
 
     # Determine if async client

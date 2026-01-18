@@ -172,7 +172,8 @@ Respond with JSON only. Do not include code fences, markdown, or extra text.
 
         # Add instruction based on client version
         if "messages" in new_kwargs:
-            # V2 format: prepend to messages
+            # V2 format: prepend to messages (copy to avoid mutating caller's list)
+            new_kwargs["messages"] = list(new_kwargs["messages"])
             new_kwargs["messages"].insert(0, {"role": "user", "content": instruction})
         else:
             # V1 format: prepend to chat_history
