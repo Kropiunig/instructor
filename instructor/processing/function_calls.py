@@ -1,4 +1,5 @@
 # type: ignore
+import inspect
 import json
 import logging
 import re
@@ -753,8 +754,11 @@ def openai_schema(cls: type[BaseModel]) -> OpenAISchema:
     """
     Wrap a Pydantic model class to add OpenAISchema functionality.
     """
-    if not issubclass(cls, BaseModel):
-        raise TypeError("must be a subclass of pydantic.BaseModel")
+    if not inspect.isclass(cls) or not issubclass(cls, BaseModel):
+        got = cls.__name__ if inspect.isclass(cls) else type(cls).__name__
+        raise TypeError(
+            f"response_model must be a subclass of pydantic.BaseModel, got {got}"
+        )
 
     # Create the wrapped model
     schema = wraps(cls, updated=())(

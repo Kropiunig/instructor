@@ -147,18 +147,94 @@ async def process_response_async(
             response_model, OpenAISchema
         ):
             if stream and hasattr(response_model, "from_streaming_response_async"):
+                from instructor.utils import extract_json_from_stream_async
+
+                async def _openai_stream_extractor_async(completion):  # type: ignore[no-untyped-def]
+                    async def _raw_chunks():  # type: ignore[no-untyped-def]
+                        async for chunk in completion:
+                            try:
+                                if mode == Mode.RESPONSES_TOOLS:
+                                    from openai.types.responses import (
+                                        ResponseFunctionCallArgumentsDeltaEvent,
+                                    )
+
+                                    if isinstance(
+                                        chunk, ResponseFunctionCallArgumentsDeltaEvent
+                                    ):
+                                        yield chunk.delta
+                                    continue
+
+                                if not getattr(chunk, "choices", None):
+                                    continue
+
+                                if mode == Mode.FUNCTIONS:
+                                    Mode.warn_mode_functions_deprecation()
+                                    if (
+                                        json_chunk
+                                        := chunk.choices[
+                                            0
+                                        ].delta.function_call.arguments
+                                    ):
+                                        yield json_chunk
+                                elif mode in {
+                                    Mode.JSON,
+                                    Mode.MD_JSON,
+                                    Mode.JSON_SCHEMA,
+                                }:
+                                    if json_chunk := chunk.choices[0].delta.content:
+                                        yield json_chunk
+                                elif mode in {
+                                    Mode.TOOLS,
+                                    Mode.TOOLS_STRICT,
+                                    Mode.PARALLEL_TOOLS,
+                                }:
+                                    if json_chunk := chunk.choices[0].delta.tool_calls:
+                                        if (
+                                            json_chunk[0].function.arguments
+                                            is not None
+                                        ):
+                                            yield json_chunk[0].function.arguments
+                            except AttributeError:
+                                continue
+
+                    raw_chunks = _raw_chunks()
+                    if mode == Mode.MD_JSON:
+                        async for c in extract_json_from_stream_async(raw_chunks):
+                            yield c
+                        return
+                    async for c in raw_chunks:
+                        yield c
+
+                parse_kwargs: dict[str, Any] = {}
+                if validation_context is not None:
+                    parse_kwargs["context"] = validation_context
+                if strict is not None:
+                    parse_kwargs["strict"] = strict
+
+                legacy_kwargs: dict[str, Any] = {}
+                if validation_context is not None:
+                    legacy_kwargs["validation_context"] = validation_context
+                if strict is not None:
+                    legacy_kwargs["strict"] = strict
+
                 try:
                     model = response_model.from_streaming_response_async(  # type: ignore[attr-defined]
                         response,
-                        mode=mode,
-                        validation_context=validation_context,
-                        strict=strict,
+                        stream_extractor=_openai_stream_extractor_async,
+                        **parse_kwargs,
                     )
                 except TypeError:
-                    model = response_model.from_streaming_response_async(  # type: ignore[attr-defined]
-                        response,
-                        mode=mode,
-                    )
+                    try:
+                        model = response_model.from_streaming_response_async(  # type: ignore[attr-defined]
+                            response,
+                            mode=mode,
+                            **legacy_kwargs,
+                        )
+                    except TypeError:
+                        model = response_model.from_streaming_response_async(  # type: ignore[attr-defined]
+                            response,
+                            mode=mode,
+                        )
             elif hasattr(response_model, "from_response"):
                 try:
                     model = response_model.from_response(  # type: ignore[attr-defined]
@@ -327,18 +403,92 @@ def process_response(
             response_model, OpenAISchema
         ):
             if stream and hasattr(response_model, "from_streaming_response"):
+                from instructor.utils import extract_json_from_stream
+
+                def _openai_stream_extractor(completion):  # type: ignore[no-untyped-def]
+                    def _raw_chunks():  # type: ignore[no-untyped-def]
+                        for chunk in completion:
+                            try:
+                                if mode == Mode.RESPONSES_TOOLS:
+                                    from openai.types.responses import (
+                                        ResponseFunctionCallArgumentsDeltaEvent,
+                                    )
+
+                                    if isinstance(
+                                        chunk, ResponseFunctionCallArgumentsDeltaEvent
+                                    ):
+                                        yield chunk.delta
+                                    continue
+
+                                if not getattr(chunk, "choices", None):
+                                    continue
+
+                                if mode == Mode.FUNCTIONS:
+                                    Mode.warn_mode_functions_deprecation()
+                                    if (
+                                        json_chunk
+                                        := chunk.choices[
+                                            0
+                                        ].delta.function_call.arguments
+                                    ):
+                                        yield json_chunk
+                                elif mode in {
+                                    Mode.JSON,
+                                    Mode.MD_JSON,
+                                    Mode.JSON_SCHEMA,
+                                }:
+                                    if json_chunk := chunk.choices[0].delta.content:
+                                        yield json_chunk
+                                elif mode in {
+                                    Mode.TOOLS,
+                                    Mode.TOOLS_STRICT,
+                                    Mode.PARALLEL_TOOLS,
+                                }:
+                                    if json_chunk := chunk.choices[0].delta.tool_calls:
+                                        if (
+                                            json_chunk[0].function.arguments
+                                            is not None
+                                        ):
+                                            yield json_chunk[0].function.arguments
+                            except AttributeError:
+                                continue
+
+                    raw_chunks = _raw_chunks()
+                    if mode == Mode.MD_JSON:
+                        yield from extract_json_from_stream(raw_chunks)
+                        return
+                    yield from raw_chunks
+
+                parse_kwargs: dict[str, Any] = {}
+                if validation_context is not None:
+                    parse_kwargs["context"] = validation_context
+                if strict is not None:
+                    parse_kwargs["strict"] = strict
+
+                legacy_kwargs: dict[str, Any] = {}
+                if validation_context is not None:
+                    legacy_kwargs["validation_context"] = validation_context
+                if strict is not None:
+                    legacy_kwargs["strict"] = strict
+
                 try:
                     model = response_model.from_streaming_response(  # type: ignore[attr-defined]
                         response,
-                        mode=mode,
-                        validation_context=validation_context,
-                        strict=strict,
+                        stream_extractor=_openai_stream_extractor,
+                        **parse_kwargs,
                     )
                 except TypeError:
-                    model = response_model.from_streaming_response(  # type: ignore[attr-defined]
-                        response,
-                        mode=mode,
-                    )
+                    try:
+                        model = response_model.from_streaming_response(  # type: ignore[attr-defined]
+                            response,
+                            mode=mode,
+                            **legacy_kwargs,
+                        )
+                    except TypeError:
+                        model = response_model.from_streaming_response(  # type: ignore[attr-defined]
+                            response,
+                            mode=mode,
+                        )
             elif hasattr(response_model, "from_response"):
                 try:
                     model = response_model.from_response(  # type: ignore[attr-defined]

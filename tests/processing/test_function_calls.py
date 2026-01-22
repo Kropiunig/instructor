@@ -104,7 +104,10 @@ def test_openai_schema() -> None:
 
 
 def test_openai_schema_raises_error() -> None:
-    with pytest.raises(TypeError, match="must be a subclass of pydantic.BaseModel"):
+    with pytest.raises(
+        TypeError,
+        match="response_model must be a subclass of pydantic.BaseModel",
+    ):
 
         @openai_schema
         class Dummy:
