@@ -169,12 +169,9 @@ async def process_response_async(
 
                                 if mode == Mode.FUNCTIONS:
                                     Mode.warn_mode_functions_deprecation()
-                                    if (
-                                        json_chunk
-                                        := chunk.choices[
-                                            0
-                                        ].delta.function_call.arguments
-                                    ):
+                                    if json_chunk := chunk.choices[
+                                        0
+                                    ].delta.function_call.arguments:
                                         yield json_chunk
                                 elif mode in {
                                     Mode.JSON,
@@ -189,10 +186,7 @@ async def process_response_async(
                                     Mode.PARALLEL_TOOLS,
                                 }:
                                     if json_chunk := chunk.choices[0].delta.tool_calls:
-                                        if (
-                                            json_chunk[0].function.arguments
-                                            is not None
-                                        ):
+                                        if json_chunk[0].function.arguments is not None:
                                             yield json_chunk[0].function.arguments
                             except AttributeError:
                                 continue
@@ -425,12 +419,9 @@ def process_response(
 
                                 if mode == Mode.FUNCTIONS:
                                     Mode.warn_mode_functions_deprecation()
-                                    if (
-                                        json_chunk
-                                        := chunk.choices[
-                                            0
-                                        ].delta.function_call.arguments
-                                    ):
+                                    if json_chunk := chunk.choices[
+                                        0
+                                    ].delta.function_call.arguments:
                                         yield json_chunk
                                 elif mode in {
                                     Mode.JSON,
@@ -445,10 +436,7 @@ def process_response(
                                     Mode.PARALLEL_TOOLS,
                                 }:
                                     if json_chunk := chunk.choices[0].delta.tool_calls:
-                                        if (
-                                            json_chunk[0].function.arguments
-                                            is not None
-                                        ):
+                                        if json_chunk[0].function.arguments is not None:
                                             yield json_chunk[0].function.arguments
                             except AttributeError:
                                 continue
