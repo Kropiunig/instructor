@@ -60,6 +60,15 @@ OPENAI_COMPAT_PROVIDERS = [
     Provider.CEREBRAS,
 ]
 
+OPENAI_PARALLEL_TOOL_PROVIDERS = [
+    Provider.OPENAI,
+    Provider.ANYSCALE,
+    Provider.TOGETHER,
+    Provider.DATABRICKS,
+    Provider.DEEPSEEK,
+    Provider.OPENROUTER,
+]
+
 OPENAI_JSON_SCHEMA_PROVIDERS = [
     Provider.OPENAI,
     Provider.ANYSCALE,
@@ -697,7 +706,7 @@ class OpenAIMDJSONHandler(OpenAIHandlerBase):
         return self._finalize_parsed_result(response_model, response, parsed)
 
 
-@register_mode_handler(OPENAI_COMPAT_PROVIDERS, Mode.PARALLEL_TOOLS)
+@register_mode_handler(OPENAI_PARALLEL_TOOL_PROVIDERS, Mode.PARALLEL_TOOLS)
 class OpenAIParallelToolsHandler(OpenAIHandlerBase):
     """Handler for OpenAI parallel tool calling."""
 

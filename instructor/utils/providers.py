@@ -5,7 +5,7 @@ This module contains provider-related enums and detection logic.
 
 from enum import Enum
 
-from instructor.mode import Mode
+from instructor.mode import DEPRECATED_TO_CORE, Mode
 
 
 class Provider(Enum):
@@ -66,11 +66,11 @@ def provider_from_mode(mode: Mode, default: Provider = Provider.OPENAI) -> Provi
     return mapping.get(mode, default)
 
 
-def normalize_mode_for_provider(mode: Mode, provider: Provider) -> Mode:
+def normalize_mode_for_provider(mode: Mode, _provider: Provider) -> Mode:
     """Apply provider-specific mode overrides before registry lookup."""
-    if provider is Provider.ANTHROPIC and mode is Mode.ANTHROPIC_JSON:
+    if mode in DEPRECATED_TO_CORE:
         Mode.warn_deprecated_mode(mode)
-        return Mode.JSON
+        return DEPRECATED_TO_CORE[mode]
     return mode
 
 

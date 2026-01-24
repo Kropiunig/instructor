@@ -4,7 +4,7 @@ import openai
 import inspect
 from functools import partial
 import instructor
-from ..utils.providers import Provider, get_provider
+from ..utils.providers import Provider, get_provider, normalize_mode_for_provider
 from openai.types.chat import ChatCompletionMessageParam
 from typing import (
     TypeVar,
@@ -818,10 +818,11 @@ def from_openai(
         )
 
     _ensure_registry_loaded()
+    normalized_mode = normalize_mode_for_provider(mode, provider)
     try:
         from instructor.v2.core.registry import mode_registry
 
-        if not mode_registry.is_registered(provider, mode):
+        if not mode_registry.is_registered(provider, normalized_mode):
             raise ConfigurationError(
                 f"Mode {mode} is not registered for provider {provider}."
             )
