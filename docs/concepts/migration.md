@@ -100,7 +100,7 @@ user = await client.create(...)
 ### Anthropic
 
 ```python
-# Before
+# Before (removed)
 import anthropic
 from instructor import from_anthropic
 
@@ -115,7 +115,7 @@ user = client.create(...)
 ### Google/Gemini
 
 ```python
-# Before
+# Before (removed)
 import google.genai as genai
 from instructor import from_genai
 
@@ -188,13 +188,13 @@ anthropic_client = instructor.from_provider("anthropic/claude-3-5-sonnet")
 
 ## Backward Compatibility
 
-Old patterns still work but are deprecated:
+Legacy helpers have been removed:
 
 - `instructor.patch()` → Use `from_provider` instead
 - `instructor.apatch()` → Use `from_provider` with `async_client=True`
 - `from_openai()`, `from_anthropic()`, etc. → Use `from_provider`
 
-You can migrate gradually - both patterns work side by side.
+Update all call sites before upgrading.
 
 ## See Also
 

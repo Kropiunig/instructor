@@ -331,17 +331,11 @@ client = instructor.from_provider("openai/gpt-4o-mini")
 
 ### from_provider vs. Provider-Specific Functions
 
+Provider-specific helpers were removed. Use `from_provider` for all clients:
+
 ```python
-# Old way (provider-specific)
-from instructor import from_openai, from_anthropic
 import instructor
-import openai
-import anthropic
 
-openai_client = from_openai(openai.OpenAI())
-anthropic_client = from_anthropic(anthropic.Anthropic())
-
-# New way (unified)
 openai_client = instructor.from_provider("openai/gpt-4o-mini")
 anthropic_client = instructor.from_provider("anthropic/claude-3-5-sonnet")
 ```
@@ -354,7 +348,7 @@ If you get an error about an unsupported provider:
 
 1. Check the provider name spelling
 2. Verify the provider is in the supported list
-3. Check if you need to install an extra package: `pip install "instructor[provider-name]"`
+3. Check if you need to install an extra package: `uv pip install "instructor[provider-name]"`
 
 ### Import Errors
 
@@ -363,10 +357,10 @@ If you get import errors:
 ```bash
 # Install the required package
 # For Anthropic
-pip install anthropic
+uv pip install anthropic
 
 # For Google
-pip install google-genai
+uv pip install google-genai
 
 # For others, see integration docs
 ```
