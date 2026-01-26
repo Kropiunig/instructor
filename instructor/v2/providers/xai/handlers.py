@@ -72,6 +72,87 @@ def _convert_messages(messages: list[dict[str, Any]]) -> list[Any]:
     return converted
 
 
+def reask_xai_json(
+    kwargs: dict[str, Any],
+    response: Any,
+    exception: Exception,
+):
+    """Handle reask for xAI JSON mode when validation fails."""
+    kwargs = kwargs.copy()
+    reask_msg = {
+        "role": "user",
+        "content": (
+            "Validation Errors found:\n"
+            f"{exception}\n"
+            "Recall the function correctly, fix the errors found in the following attempt:\n"
+            f"{response}"
+        ),
+    }
+    kwargs["messages"].append(reask_msg)
+    return kwargs
+
+
+def reask_xai_tools(
+    kwargs: dict[str, Any],
+    response: Any,
+    exception: Exception,
+):
+    """Handle reask for xAI tools mode when validation fails."""
+    kwargs = kwargs.copy()
+
+    assistant_msg = {
+        "role": "assistant",
+        "content": str(response),
+    }
+    kwargs["messages"].append(assistant_msg)
+
+    reask_msg = {
+        "role": "user",
+        "content": (
+            "Validation Error found:\n"
+            f"{exception}\n"
+            "Recall the function correctly, fix the errors"
+        ),
+    }
+    kwargs["messages"].append(reask_msg)
+    return kwargs
+
+
+def handle_xai_json(
+    response_model: type[Any] | None, new_kwargs: dict[str, Any]
+) -> tuple[type[Any] | None, dict[str, Any]]:
+    """Handle xAI JSON mode."""
+    messages = new_kwargs.get("messages", [])
+    new_kwargs["x_messages"] = _convert_messages(messages)
+
+    new_kwargs.pop("max_retries", None)
+    new_kwargs.pop("context", None)
+    new_kwargs.pop("hooks", None)
+
+    return response_model, new_kwargs
+
+
+def handle_xai_tools(
+    response_model: type[Any] | None, new_kwargs: dict[str, Any]
+) -> tuple[type[Any] | None, dict[str, Any]]:
+    """Handle xAI tools mode."""
+    messages = new_kwargs.get("messages", [])
+    new_kwargs["x_messages"] = _convert_messages(messages)
+
+    new_kwargs.pop("max_retries", None)
+    new_kwargs.pop("context", None)
+    new_kwargs.pop("hooks", None)
+
+    if response_model is not None and xchat is not None:
+        new_kwargs["tool"] = xchat.tool(
+            name=response_model.__name__,
+            description=response_model.__doc__ or "",
+            parameters=response_model.model_json_schema(),
+        )
+
+    return response_model, new_kwargs
+
+
 class XAIHandlerBase(ModeHandler):
     """Base class for xAI handlers with shared utilities."""
 
@@ -639,6 +720,10 @@ class XAIMDJSONHandler(XAIHandlerBase):
 
 
 __all__ = [
+    "handle_xai_json",
+    "handle_xai_tools",
+    "reask_xai_json",
+    "reask_xai_tools",
     "XAIToolsHandler",
     "XAIJSONSchemaHandler",
     "XAIMDJSONHandler",

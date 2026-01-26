@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from instructor.dsl.partial import Partial, PartialBase
 from instructor.core.exceptions import ConfigurationError
-from instructor.mode import Mode
 from instructor.processing.multimodal import Audio, Image, PDF
 from instructor.utils.core import get_message_content
 
@@ -218,13 +217,17 @@ def update_genai_kwargs(
                     inline_data = getattr(part, "inline_data", None)
                     if inline_data is not None:
                         mime_type = getattr(inline_data, "mime_type", None)
-                        if isinstance(mime_type, str) and mime_type.startswith("image/"):
+                        if isinstance(mime_type, str) and mime_type.startswith(
+                            "image/"
+                        ):
                             return True
 
                     file_data = getattr(part, "file_data", None)
                     if file_data is not None:
                         mime_type = getattr(file_data, "mime_type", None)
-                        if isinstance(mime_type, str) and mime_type.startswith("image/"):
+                        if isinstance(mime_type, str) and mime_type.startswith(
+                            "image/"
+                        ):
                             return True
 
         messages = genai_kwargs.get("messages")
@@ -270,12 +273,14 @@ def update_genai_kwargs(
         image_categories = [
             c
             for c in HarmCategory
-            if c not in excluded_categories and c.name.startswith("HARM_CATEGORY_IMAGE_")
+            if c not in excluded_categories
+            and c.name.startswith("HARM_CATEGORY_IMAGE_")
         ]
         text_categories = [
             c
             for c in HarmCategory
-            if c not in excluded_categories and not c.name.startswith("HARM_CATEGORY_IMAGE_")
+            if c not in excluded_categories
+            and not c.name.startswith("HARM_CATEGORY_IMAGE_")
         ]
 
         supported_categories = (
@@ -540,7 +545,9 @@ def reask_vertexai_tools(
     response: Any,
     exception: Exception,
 ):
-    from instructor.v2.providers.vertexai.utils import vertexai_function_response_parser
+    from instructor.v2.providers.vertexai.handlers import (
+        vertexai_function_response_parser,
+    )
 
     kwargs = kwargs.copy()
     reask_msgs = [
@@ -556,7 +563,7 @@ def reask_vertexai_json(
     response: Any,
     exception: Exception,
 ):
-    from instructor.v2.providers.vertexai.utils import vertexai_message_parser
+    from instructor.v2.providers.vertexai.handlers import vertexai_message_parser
 
     kwargs = kwargs.copy()
 
@@ -908,7 +915,7 @@ def handle_vertexai_parallel_tools(
     from typing import get_args
 
     from instructor.dsl.parallel import VertexAIParallelModel
-    from instructor.v2.providers.vertexai.utils import vertexai_process_response
+    from instructor.v2.providers.vertexai.handlers import vertexai_process_response
 
     if new_kwargs.get("stream", False):
         raise ConfigurationError(
@@ -927,7 +934,7 @@ def handle_vertexai_parallel_tools(
 def handle_vertexai_tools(
     response_model: type[Any] | None, new_kwargs: dict[str, Any]
 ) -> tuple[type[Any] | None, dict[str, Any]]:
-    from instructor.v2.providers.vertexai.utils import vertexai_process_response
+    from instructor.v2.providers.vertexai.handlers import vertexai_process_response
 
     if response_model is None:
         return None, new_kwargs
@@ -943,7 +950,7 @@ def handle_vertexai_tools(
 def handle_vertexai_json(
     response_model: type[Any] | None, new_kwargs: dict[str, Any]
 ) -> tuple[type[Any] | None, dict[str, Any]]:
-    from instructor.v2.providers.vertexai.utils import vertexai_process_json_response
+    from instructor.v2.providers.vertexai.handlers import vertexai_process_json_response
 
     if response_model is None:
         return None, new_kwargs

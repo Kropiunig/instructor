@@ -8,15 +8,15 @@ from pydantic import BaseModel
 
 from instructor.mode import Mode
 from instructor.utils.providers import Provider
-from instructor.v2.providers.openai.utils import (
-    handle_openrouter_structured_outputs,
-    reask_default,
-)
 from instructor.v2.core.decorators import register_mode_handler
 
 # Register OpenAI-compatible handlers (TOOLS, MD_JSON, PARALLEL_TOOLS) for OpenRouter.
 from instructor.v2.providers.openai import handlers as _openai_handlers  # noqa: F401
-from instructor.v2.providers.openai.handlers import OpenAIJSONSchemaHandler
+from instructor.v2.providers.openai.handlers import (
+    OpenAIJSONSchemaHandler,
+    handle_openrouter_structured_outputs,
+    reask_default,
+)
 
 
 @register_mode_handler(Provider.OPENROUTER, Mode.JSON_SCHEMA)

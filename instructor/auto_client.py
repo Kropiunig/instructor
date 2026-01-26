@@ -253,7 +253,7 @@ def from_provider(
         try:
             import os
             from openai import AzureOpenAI, AsyncAzureOpenAI
-            from instructor import from_openai  # type: ignore[attr-defined]
+            from instructor import from_openai
 
             # Get required Azure OpenAI configuration from environment
             api_key = api_key or os.environ.get("AZURE_OPENAI_API_KEY")
@@ -496,7 +496,7 @@ def from_provider(
                 vertexai=vertexai_flag,
                 api_key=api_key,
                 **client_kwargs,
-            )  # type: ignore
+            )
             # Default to TOOLS for v2
             # Extract model from kwargs if present, otherwise use model_name
             model_param = kwargs.pop("model", model_name)
@@ -951,14 +951,14 @@ def from_provider(
                     model=model_name,
                     mode=mode if mode else instructor.Mode.TOOLS,
                     **kwargs,
-                )  # type: ignore
+                )
             else:
                 result = from_genai(
                     client,
                     model=model_name,
                     mode=mode if mode else instructor.Mode.TOOLS,
                     **kwargs,
-                )  # type: ignore
+                )
             logger.info(
                 "Client initialized",
                 extra={**provider_info, "status": "success"},
@@ -977,7 +977,7 @@ def from_provider(
     elif provider == "ollama":
         try:
             import openai
-            from instructor import from_openai  # type: ignore[attr-defined]
+            from instructor import from_openai
 
             # Get base_url from kwargs or use default
             base_url = kwargs.pop("base_url", "http://localhost:11434/v1")

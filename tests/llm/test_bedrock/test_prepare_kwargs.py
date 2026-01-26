@@ -1,5 +1,7 @@
 from __future__ import annotations
-from instructor.v2.providers.bedrock.utils import _prepare_bedrock_converse_kwargs_internal
+from instructor.v2.providers.bedrock.handlers import (
+    _prepare_bedrock_converse_kwargs_internal,
+)
 
 
 def test_prepare_bedrock_kwargs_openai_text_plus_image(image_url: str):
