@@ -1,5 +1,6 @@
 from __future__ import annotations  # type: ignore
 
+import warnings
 from typing import Any, overload
 
 import instructor
@@ -30,6 +31,15 @@ def from_cerebras(
     mode: instructor.Mode = instructor.Mode.CEREBRAS_TOOLS,
     **kwargs: Any,
 ) -> Instructor | AsyncInstructor:
+    warnings.warn(
+        "from_cerebras() is deprecated and will be removed in v2. "
+        "Use the v2 factory instead:\n"
+        "  from instructor.v2.providers.cerebras import from_cerebras\n"
+        "Or use from_provider() which automatically routes to v2:\n"
+        "  client = instructor.from_provider('cerebras/model-name')",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     valid_modes = {
         instructor.Mode.CEREBRAS_TOOLS,
         instructor.Mode.CEREBRAS_JSON,

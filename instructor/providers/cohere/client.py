@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import warnings
 from collections.abc import Awaitable
 from typing import Any, TypeVar, cast, overload
 
@@ -51,6 +52,15 @@ def from_cohere(
     mode: instructor.Mode = instructor.Mode.COHERE_TOOLS,
     **kwargs: Any,
 ):
+    warnings.warn(
+        "from_cohere() is deprecated and will be removed in v2. "
+        "Use the v2 factory instead:\n"
+        "  from instructor.v2.providers.cohere import from_cohere\n"
+        "Or use from_provider() which automatically routes to v2:\n"
+        "  client = instructor.from_provider('cohere/model-name')",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     valid_modes = {
         instructor.Mode.COHERE_TOOLS,
         instructor.Mode.COHERE_JSON_SCHEMA,

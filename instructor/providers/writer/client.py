@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 
+import warnings
+from typing import Any, overload
+
 import instructor
 from writerai import AsyncWriter, Writer
-from typing import overload, Any
 
 
 @overload
@@ -28,6 +30,15 @@ def from_writer(
     mode: instructor.Mode = instructor.Mode.WRITER_TOOLS,
     **kwargs: Any,
 ) -> instructor.Instructor | instructor.AsyncInstructor:
+    warnings.warn(
+        "from_writer() is deprecated and will be removed in v2. "
+        "Use the v2 factory instead:\n"
+        "  from instructor.v2.providers.writer import from_writer\n"
+        "Or use from_provider() which automatically routes to v2:\n"
+        "  client = instructor.from_provider('writer/model-name')",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     valid_modes = {instructor.Mode.WRITER_TOOLS, instructor.Mode.WRITER_JSON}
 
     if mode not in valid_modes:

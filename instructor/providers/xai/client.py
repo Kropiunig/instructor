@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any, TYPE_CHECKING, cast, overload
 import json
 
@@ -94,6 +95,15 @@ def from_xai(
     mode: instructor.Mode = instructor.Mode.XAI_JSON,
     **kwargs: Any,
 ) -> instructor.Instructor | instructor.AsyncInstructor:
+    warnings.warn(
+        "from_xai() is deprecated and will be removed in v2. "
+        "Use the v2 factory instead:\n"
+        "  from instructor.v2.providers.xai import from_xai\n"
+        "Or use from_provider() which automatically routes to v2:\n"
+        "  client = instructor.from_provider('xai/model-name')",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     valid_modes = {instructor.Mode.XAI_JSON, instructor.Mode.XAI_TOOLS}
 
     if mode not in valid_modes:

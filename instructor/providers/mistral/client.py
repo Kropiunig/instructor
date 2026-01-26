@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 
-from mistralai import Mistral
+import warnings
+from typing import Any, Literal, overload
+
 import instructor
-from typing import overload, Any, Literal
+from mistralai import Mistral
 
 
 @overload
@@ -31,6 +33,15 @@ def from_mistral(
     use_async: bool = False,
     **kwargs: Any,
 ) -> instructor.Instructor | instructor.AsyncInstructor:
+    warnings.warn(
+        "from_mistral() is deprecated and will be removed in v2. "
+        "Use the v2 factory instead:\n"
+        "  from instructor.v2.providers.mistral import from_mistral\n"
+        "Or use from_provider() which automatically routes to v2:\n"
+        "  client = instructor.from_provider('mistral/model-name')",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     valid_modes = {
         instructor.Mode.MISTRAL_TOOLS,
         instructor.Mode.MISTRAL_STRUCTURED_OUTPUTS,
