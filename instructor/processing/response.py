@@ -15,7 +15,7 @@ Key Components:
 
 Example:
     ```python
-    from instructor.process_response import process_response
+    from instructor.processing.response import process_response
     from ..mode import Mode
     from pydantic import BaseModel
 

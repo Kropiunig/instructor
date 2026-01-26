@@ -40,6 +40,17 @@ T_Model = TypeVar("T_Model", bound=BaseModel)
 T = TypeVar("T")
 
 
+def extract_messages(kwargs: dict[str, Any]) -> Any:
+    """Extract messages from kwargs across provider formats."""
+    if "messages" in kwargs:
+        return kwargs["messages"]
+    if "contents" in kwargs:
+        return kwargs["contents"]
+    if "chat_history" in kwargs:
+        return kwargs["chat_history"]
+    return []
+
+
 def extract_json_from_codeblock(content: str) -> str:
     """
     Extract JSON from a string that may contain extra text.
@@ -378,6 +389,17 @@ def update_total_usage(
 
     logger.debug("No compatible response.usage found, token usage not updated.")
     return response
+
+
+def extract_messages(kwargs: dict[str, Any]) -> Any:
+    """Extract messages from kwargs across provider formats."""
+    if "messages" in kwargs:
+        return kwargs["messages"]
+    if "contents" in kwargs:
+        return kwargs["contents"]
+    if "chat_history" in kwargs:
+        return kwargs["chat_history"]
+    return []
 
 
 def dump_message(message: ChatCompletionMessage) -> ChatCompletionMessageParam:
