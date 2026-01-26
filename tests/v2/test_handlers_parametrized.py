@@ -508,7 +508,7 @@ def test_parse_response_validation_error(provider: Provider, mode: Mode) -> None
         raise ValueError(f"Unsupported scenario {scenario}")
 
     with pytest.raises(ValidationError):
-        handlers.response_parser(
+        result = handlers.response_parser(
             response=response,
             response_model=response_model,
             validation_context=None,
@@ -516,6 +516,8 @@ def test_parse_response_validation_error(provider: Provider, mode: Mode) -> None
             stream=False,
             is_async=False,
         )
+        if scenario == "parallel_tool_call":
+            list(result)
 
 
 @pytest.mark.parametrize("provider,mode", _provider_mode_params())
