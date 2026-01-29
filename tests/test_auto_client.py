@@ -109,32 +109,22 @@ def test_unsupported_provider():
 
 def test_additional_kwargs_passed():
     """Test that additional kwargs are passed to provider."""
+    """This is a unit test; it should not require Anthropic auth/network."""
+    from unittest.mock import MagicMock, patch
+
     import instructor
-    from instructor.core.exceptions import InstructorRetryException
-    import os
 
-    if os.getenv("INSTRUCTOR_ENV") == "CI":
-        pytest.skip("Skipping test on CI")
-        return
+    with patch("anthropic.Anthropic") as mock_anthropic_class:
+        mock_anthropic_class.return_value = MagicMock()
 
-    client = instructor.from_provider(
-        "anthropic/claude-3-5-haiku-latest", max_tokens=10
-    )
+        with patch("instructor.from_anthropic") as mock_from_anthropic:
+            mock_from_anthropic.return_value = MagicMock()
 
-    with pytest.raises(InstructorRetryException) as excinfo:
-        client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": "Generate a sentence with 20 characters",
-                }
-            ],
-            response_model=str,
-        )
+            instructor.from_provider("anthropic/claude-3-5-haiku-latest", max_tokens=10)
 
-    assert "The output is incomplete due to a max_tokens length limit" in str(
-        excinfo.value
-    )
+            mock_from_anthropic.assert_called_once()
+            _, kwargs = mock_from_anthropic.call_args
+            assert kwargs["max_tokens"] == 10
 
 
 def test_api_key_parameter_extraction():
@@ -489,47 +479,71 @@ def test_databricks_provider_requires_host():
 
 def test_genai_mode_parameter_passed_to_provider():
     """Test that mode parameter is correctly passed to provider functions."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
     import instructor
+    import sys
+    import types
 
-    with patch("google.genai.Client") as mock_genai_class:
-        mock_client = MagicMock()
-        mock_genai_class.return_value = mock_client
+    google_module = types.ModuleType("google")
+    genai_module = types.ModuleType("google.genai")
+    google_module.genai = genai_module  # type: ignore[attr-defined]
 
-        with patch("instructor.from_genai") as mock_from_genai:
-            mock_instructor = MagicMock()
-            mock_from_genai.return_value = mock_instructor
+    with patch.dict(
+        sys.modules, {"google": google_module, "google.genai": genai_module}
+    ):
+        with patch("google.genai.Client", create=True) as mock_genai_class:
+            mock_client = MagicMock()
+            mock_genai_class.return_value = mock_client
 
-            from_provider(
-                "google/gemini-pro",
-                mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
-            )
+            mock_from_genai = MagicMock()
+            with patch.object(
+                __import__("instructor"), "from_genai", mock_from_genai, create=True
+            ):
+                mock_instructor = MagicMock()
+                mock_from_genai.return_value = mock_instructor
 
-            mock_from_genai.assert_called_once()
-            _, kwargs = mock_from_genai.call_args
-            assert "mode" in kwargs
-            assert kwargs["mode"] == instructor.Mode.GENAI_STRUCTURED_OUTPUTS
+                from_provider(
+                    "google/gemini-pro",
+                    mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
+                )
+
+                mock_from_genai.assert_called_once()
+                _, kwargs = mock_from_genai.call_args
+                assert "mode" in kwargs
+                assert kwargs["mode"] == instructor.Mode.GENAI_STRUCTURED_OUTPUTS
 
 
 def test_genai_mode_defaults_when_not_provided():
     """Test that GenAI provider uses GENAI_TOOLS mode when mode is not provided."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
     import instructor
+    import sys
+    import types
 
-    with patch("google.genai.Client") as mock_genai_class:
-        mock_client = MagicMock()
-        mock_genai_class.return_value = mock_client
+    google_module = types.ModuleType("google")
+    genai_module = types.ModuleType("google.genai")
+    google_module.genai = genai_module  # type: ignore[attr-defined]
 
-        with patch("instructor.from_genai") as mock_from_genai:
-            mock_instructor = MagicMock()
-            mock_from_genai.return_value = mock_instructor
+    with patch.dict(
+        sys.modules, {"google": google_module, "google.genai": genai_module}
+    ):
+        with patch("google.genai.Client", create=True) as mock_genai_class:
+            mock_client = MagicMock()
+            mock_genai_class.return_value = mock_client
 
-            from_provider("google/gemini-pro")
+            mock_from_genai = MagicMock()
+            with patch.object(
+                __import__("instructor"), "from_genai", mock_from_genai, create=True
+            ):
+                mock_instructor = MagicMock()
+                mock_from_genai.return_value = mock_instructor
 
-            mock_from_genai.assert_called_once()
-            _, kwargs = mock_from_genai.call_args
-            assert "mode" in kwargs
-            assert kwargs["mode"] == instructor.Mode.GENAI_TOOLS
+                from_provider("google/gemini-pro")
+
+                mock_from_genai.assert_called_once()
+                _, kwargs = mock_from_genai.call_args
+                assert "mode" in kwargs
+                assert kwargs["mode"] == instructor.Mode.GENAI_TOOLS
 
 
 def test_google_provider_runtime_import_error_propagates():
