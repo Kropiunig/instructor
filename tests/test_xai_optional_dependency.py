@@ -1,5 +1,12 @@
 import pytest
 
+try:
+    import xai_sdk  # noqa: F401
+except ImportError:
+    pass
+else:
+    pytest.skip("xai-sdk is installed", allow_module_level=True)
+
 
 def test_from_provider_xai_requires_optional_extra():
     import instructor
