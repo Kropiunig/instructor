@@ -62,5 +62,7 @@ print("ok")
         check=False,
     )
     assert proc.returncode == 0, proc.stderr
-    assert "All support for the `google.generativeai` package has ended." not in proc.stderr
-
+    assert (
+        "All support for the `google.generativeai` package has ended."
+        not in proc.stderr
+    )
