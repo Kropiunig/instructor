@@ -9,7 +9,6 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
-import requests
 from textwrap import dedent
 from typing import Any
 
@@ -156,7 +155,7 @@ def _normalize_bedrock_image_format(mime_or_ext: str) -> str:
 def _openai_image_part_to_bedrock(part: dict[str, Any]) -> dict[str, Any]:
     """
     Convert OpenAI-style image part:
-      {"type":"image_url","image_url":{"url": "<data:... or http(s):...>"}}
+      {"type":"image_url","image_url":{"url": "<data:...>"}}
     into Bedrock Converse image content:
       {"image":{"format": "<fmt>","source":{"bytes": <raw-bytes>}}}
     """
@@ -177,36 +176,10 @@ def _openai_image_part_to_bedrock(part: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Only base64 data URLs are supported for Bedrock")
         return {"image": {"format": fmt, "source": {"bytes": base64.b64decode(b64)}}}
 
-    # http(s) URL to bytes
-    elif image_url.startswith(("http://", "https://")):
-        try:
-            resp = requests.get(image_url, timeout=15)
-            resp.raise_for_status()
-            ctype = resp.headers.get("Content-Type")
-            if ctype and "/" in ctype:
-                fmt = _normalize_bedrock_image_format(ctype)
-            return {"image": {"format": fmt, "source": {"bytes": resp.content}}}
-        except requests.exceptions.Timeout as e:  # type: ignore[attr-defined]
-            raise ValueError(f"Timed out while fetching image from {image_url}") from e
-        except requests.exceptions.ConnectionError as e:  # type: ignore[attr-defined]
-            raise ValueError(
-                f"Connection error while fetching image from {image_url}: {e}"
-            ) from e
-        except requests.exceptions.HTTPError as e:  # type: ignore[attr-defined]
-            raise ValueError(
-                f"HTTP error while fetching image from {image_url}: {e}"
-            ) from e
-        except requests.exceptions.RequestException as e:  # type: ignore[attr-defined]
-            raise ValueError(
-                f"Request error while fetching image from {image_url}: {e}"
-            ) from e
-        except Exception as e:
-            raise ValueError(
-                f"Unexpected error while fetching image from {image_url}: {e}"
-            ) from e
     else:
         raise ValueError(
-            "Unsupported image_url scheme. Use http(s) or data:image/...;base64,..."
+            "Unsupported image_url scheme for Bedrock. "
+            "Use data:image/...;base64,... or pass Bedrock-native image bytes."
         )
 
 
@@ -220,7 +193,7 @@ def _to_bedrock_content_items(content: Any) -> list[dict[str, Any]]:
           OpenAI-style:
             {"type":"text","text":"..."}
             {"type":"input_text","text":"..."}
-            {"type":"image_url","image_url":{"url":"<data:... or https:...>"}}
+            {"type":"image_url","image_url":{"url":"<data:...>"}}
           Bedrock-native (passed through as-is):
             {"text":"..."}
             {"image":{"format":"jpeg|png|gif|webp","source":{"bytes": <raw bytes>}}}

@@ -17,14 +17,13 @@ def test_openai_image_part_to_bedrock_data_url(tiny_png_data_url: str):
     )
 
 
-def test_openai_image_part_to_bedrock_https(image_url: str):
-    part = {"type": "image_url", "image_url": {"url": image_url}}
-    out = _openai_image_part_to_bedrock(part)
-    assert "image" in out
-    # GitHub raw returns jpeg for the sample. Normalize is handled in utils.
-    assert out["image"]["format"] in {"jpeg", "png", "gif", "webp"}
-    assert isinstance(out["image"]["source"]["bytes"], (bytes, bytearray))
-    assert len(out["image"]["source"]["bytes"]) > 0
+def test_openai_image_part_to_bedrock_https_rejected():
+    part = {
+        "type": "image_url",
+        "image_url": {"url": "https://example.com/image.jpg"},
+    }
+    with pytest.raises(ValueError, match="Unsupported image_url scheme for Bedrock"):
+        _openai_image_part_to_bedrock(part)
 
 
 @pytest.mark.parametrize(
@@ -34,14 +33,8 @@ def test_openai_image_part_to_bedrock_https(image_url: str):
         {"type": "input_text", "text": "Describe the image."},
     ],
 )
-@pytest.mark.parametrize("image_kind", ["data", "https"])
-def test_to_bedrock_content_items_openai_combo(
-    text_part, image_kind, tiny_png_data_url: str, image_url: str
-):
-    if image_kind == "data":
-        image_part = {"type": "image_url", "image_url": {"url": tiny_png_data_url}}
-    else:
-        image_part = {"type": "image_url", "image_url": {"url": image_url}}
+def test_to_bedrock_content_items_openai_combo(text_part, tiny_png_data_url: str):
+    image_part = {"type": "image_url", "image_url": {"url": tiny_png_data_url}}
 
     content = [text_part, image_part]
     items = _to_bedrock_content_items(content)
