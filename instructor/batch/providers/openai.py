@@ -23,6 +23,10 @@ class OpenAIProvider(BatchProvider):
         **kwargs,
     ) -> str:
         """Submit OpenAI batch job"""
+        if not isinstance(file_path_or_buffer, (str, io.BytesIO)):
+            raise ValueError(
+                f"Unsupported file_path_or_buffer type: {type(file_path_or_buffer)}"
+            )
         try:
             from openai import OpenAI
 
@@ -42,10 +46,6 @@ class OpenAIProvider(BatchProvider):
                 file_path_or_buffer.seek(0)
                 batch_file = client.files.create(
                     file=file_path_or_buffer, purpose="batch"
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported file_path_or_buffer type: {type(file_path_or_buffer)}"
                 )
 
             batch_job = client.batches.create(
