@@ -41,7 +41,8 @@ INTEGRATIONS = {
 
 
 def example_paths(names: Iterable[str]) -> list[str]:
-    return [os.path.join("docs", "examples", name) for name in names]
+    # Sort to keep pytest collection deterministic across xdist workers.
+    return [os.path.join("docs", "examples", name) for name in sorted(names)]
 
 
 def all_example_files() -> list[str]:

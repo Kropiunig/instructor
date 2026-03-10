@@ -58,7 +58,8 @@ ADVANCED = {
 
 
 def concept_paths(names: Iterable[str]) -> list[str]:
-    return [os.path.join("docs", "concepts", name) for name in names]
+    # Sort to keep pytest collection deterministic across xdist workers.
+    return [os.path.join("docs", "concepts", name) for name in sorted(names)]
 
 
 def all_concept_files() -> list[str]:

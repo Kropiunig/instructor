@@ -6,15 +6,6 @@ import pytest
 from pytest_examples import CodeExample, EvalExample
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
-    group = parser.getgroup("docs")
-    group.addoption(
-        "--run-doc-examples",
-        action="store_true",
-        help="Execute doc code examples (requires network access and API keys).",
-    )
-
-
 @pytest.fixture(name="eval_example")
 def eval_example(
     tmp_path: Path,
