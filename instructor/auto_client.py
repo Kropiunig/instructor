@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Any, Union, Literal, overload
+import importlib
+from typing import Any, Union, Literal, cast, overload
 from .core.client import AsyncInstructor, Instructor
 import instructor
 from instructor.models import KnownModelName
@@ -36,6 +37,15 @@ supported_providers = [
     "xai",
     "litellm",
 ]
+
+
+def _import_mistral_client_class() -> type[Any]:
+    try:
+        module = cast(Any, importlib.import_module("mistralai"))
+        return module.Mistral
+    except (ImportError, AttributeError):
+        module = cast(Any, importlib.import_module("mistralai.client"))
+        return module.Mistral
 
 
 @overload
@@ -519,10 +529,7 @@ def from_provider(
 
     elif provider == "mistral":
         try:
-            try:
-                from mistralai import Mistral
-            except ImportError:
-                from mistralai.client import Mistral
+            Mistral = _import_mistral_client_class()
             from instructor import from_mistral  # type: ignore[attr-defined]
             import os
 

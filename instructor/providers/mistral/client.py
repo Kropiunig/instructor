@@ -1,9 +1,10 @@
 # Future imports to ensure compatibility with Python 3.9
 from __future__ import annotations
 
+import importlib
 
 import instructor
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 if TYPE_CHECKING:
     from mistralai import Mistral
@@ -12,11 +13,11 @@ if TYPE_CHECKING:
 def _import_mistral_class() -> type[Any]:
     """Support both mistralai v1 and v2 import layouts."""
     try:
-        from mistralai import Mistral as mistral_class
-    except ImportError:
-        from mistralai.client import Mistral as mistral_class
-
-    return mistral_class
+        module = cast(Any, importlib.import_module("mistralai"))
+        return module.Mistral
+    except (ImportError, AttributeError):
+        module = cast(Any, importlib.import_module("mistralai.client"))
+        return module.Mistral
 
 
 @overload
