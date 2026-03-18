@@ -1,14 +1,23 @@
+import os
+
 import instructor
+import pytest
 from pydantic import BaseModel
+
+REASONING_MODEL = os.getenv("ANTHROPIC_REASONING_MODEL", "")
 
 
 class Answer(BaseModel):
     answer: float
 
 
+@pytest.mark.skipif(
+    not REASONING_MODEL,
+    reason="ANTHROPIC_REASONING_MODEL environment variable not set",
+)
 def test_reasoning():
     client = instructor.from_provider(
-        "anthropic/claude-3-7-sonnet-20250219",
+        REASONING_MODEL,
         mode=instructor.Mode.ANTHROPIC_REASONING_TOOLS,
     )
     response = client.chat.completions.create(

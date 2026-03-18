@@ -1,6 +1,8 @@
+import os
+
 import instructor
 
-models = ["anthropic/claude-3-5-haiku-20241022"]
+models = [os.getenv("ANTHROPIC_MODEL")] if os.getenv("ANTHROPIC_MODEL") else []
 modes = [
     instructor.Mode.ANTHROPIC_TOOLS,
 ]

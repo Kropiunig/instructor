@@ -79,6 +79,7 @@ jobs:
     needs: core-tests
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
 
     steps:
       - uses: actions/checkout@v2
@@ -91,10 +92,10 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras
       - name: Skip core provider tests (Anthropic)
-        if: ${{ env.ANTHROPIC_API_KEY == '' }}
-        run: echo "Skipping Anthropic core provider tests (missing ANTHROPIC_API_KEY)."
+        if: ${{ env.ANTHROPIC_API_KEY == '' || env.ANTHROPIC_MODEL == '' }}
+        run: echo "Skipping Anthropic core provider tests (missing ANTHROPIC_API_KEY or ANTHROPIC_MODEL)."
       - name: Run core provider tests (Anthropic)
-        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        if: ${{ env.ANTHROPIC_API_KEY != '' && env.ANTHROPIC_MODEL != '' }}
         run: |
           set +e
           uv run pytest tests/llm/test_core_providers -v --asyncio-mode=auto -n auto -k "anthropic"
@@ -108,6 +109,7 @@ jobs:
         env:
           INSTRUCTOR_ENV: CI
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
 
   # Core provider tests for Google
   core-google:
@@ -211,6 +213,8 @@ jobs:
     needs: [core-openai, core-anthropic, core-google, core-other]
     env:
       PROVIDER_API_KEY: ${{ secrets[matrix.provider.env_key] }}
+      ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+      ANTHROPIC_REASONING_MODEL: ${{ secrets.ANTHROPIC_REASONING_MODEL }}
       GOOGLE_GENAI_MODEL: ${{ secrets.GOOGLE_GENAI_MODEL }}
     strategy:
       fail-fast: false
@@ -248,6 +252,7 @@ jobs:
       - name: Skip ${{ matrix.provider.name }} tests
         if: >-
           ${{ env.PROVIDER_API_KEY == '' ||
+          (matrix.provider.name == 'Anthropic' && env.ANTHROPIC_MODEL == '' && env.ANTHROPIC_REASONING_MODEL == '') ||
           ((matrix.provider.name == 'Gemini' || matrix.provider.name == 'Google GenAI'
           || matrix.provider.name == 'Vertex AI') && env.GOOGLE_GENAI_MODEL == '') }}
         run: >-
@@ -256,6 +261,7 @@ jobs:
       - name: Run ${{ matrix.provider.name }} tests
         if: >-
           ${{ env.PROVIDER_API_KEY != '' &&
+          (matrix.provider.name != 'Anthropic' || env.ANTHROPIC_MODEL != '' || env.ANTHROPIC_REASONING_MODEL != '') &&
           ((matrix.provider.name != 'Gemini' && matrix.provider.name != 'Google GenAI'
           && matrix.provider.name != 'Vertex AI') || env.GOOGLE_GENAI_MODEL != '') }}
         run: |

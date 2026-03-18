@@ -13,6 +13,7 @@ import pytest
 
 
 GOOGLE_GENAI_MODEL = os.getenv("GOOGLE_GENAI_MODEL", "")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "")
 
 # Provider configurations: (model_string, mode, required_env_var, required_package)
 PROVIDER_CONFIGS = [
@@ -23,7 +24,7 @@ PROVIDER_CONFIGS = [
         "openai",
     ),
     (
-        "anthropic/claude-3-5-haiku-20241022",
+        ANTHROPIC_MODEL,
         instructor.Mode.ANTHROPIC_TOOLS,
         "ANTHROPIC_API_KEY",
         "anthropic",
