@@ -104,3 +104,4 @@ datasets = ["datasets>=3.0.1,<5.0.0"]
 
 [project.scripts]
 instructor = "instructor.cli.cli:app"
+vestaboard = "instructor.cli.vestaboard:app"

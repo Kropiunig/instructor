@@ -6,6 +6,7 @@ import instructor.cli.files as files
 import instructor.cli.usage as usage
 import instructor.cli.deprecated_hub as hub
 import instructor.cli.batch as batch
+import instructor.cli.vestaboard as vestaboard
 
 app: Typer = typer.Typer()
 
@@ -16,6 +17,9 @@ app.add_typer(
     hub.app, name="hub", help="[DEPRECATED] The instructor hub is no longer available"
 )
 app.add_typer(batch.app, name="batch", help="Manage OpenAI Batch jobs")
+app.add_typer(
+    vestaboard.app, name="vestaboard", help="Send messages to a Vestaboard via Cloud API"
+)
 
 
 @app.command()

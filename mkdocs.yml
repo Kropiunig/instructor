@@ -339,6 +339,7 @@ nav:
       - "Finetuning GPT-3.5": "cli/finetune.md"
       - "Usage Tracking": "cli/usage.md"
       - "Batch Jobs": "cli/batch.md"
+      - "Vestaboard": "cli/vestaboard.md"
   - Find Jobs (External):
       - Jobs: "jobs.md"
   - Blog:

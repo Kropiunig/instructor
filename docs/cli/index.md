@@ -59,6 +59,7 @@ Instructor provides several command-line utilities:
 |---------|-------------|-------|
 | `instructor usage` | Track API usage and costs | [Usage Guide](usage.md) |
 | `instructor finetune` | Create and manage fine-tuned models | [Fine-Tuning Guide](finetune.md) |
+| `instructor vestaboard` | Send text or matrices to Vestaboard | [Vestaboard Guide](vestaboard.md) |
 | `instructor docs` | Quick access to documentation | [See below](#documentation-command) |
 
 ## Usage Command
