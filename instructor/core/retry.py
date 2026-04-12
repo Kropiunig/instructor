@@ -145,6 +145,25 @@ def extract_messages(kwargs: dict[str, Any]) -> Any:
     return []
 
 
+def _build_streaming_reask_kwargs(
+    kwargs: dict[str, Any], exception: Exception
+) -> dict[str, Any]:
+    """Build a generic retry prompt when the provider-specific reask path cannot inspect a stream."""
+    kwargs_copy = kwargs.copy()
+    messages = list(extract_messages(kwargs_copy))
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                f"Validation Error found:\n{exception}\n"
+                "Recall the function correctly, fix the errors"
+            ),
+        }
+    )
+    kwargs_copy["messages"] = messages
+    return kwargs_copy
+
+
 def retry_sync(
     func: Callable[T_ParamSpec, T_Retval],
     response_model: type[T_Model] | None,
@@ -252,13 +271,20 @@ def retry_sync(
                                 is_last_attempt=True,
                             )
 
-                    kwargs = handle_reask_kwargs(
-                        kwargs=kwargs,
-                        mode=mode,
-                        response=response,
-                        exception=e,
-                        failed_attempts=failed_attempts,
-                    )
+                    try:
+                        kwargs = handle_reask_kwargs(
+                            kwargs=kwargs,
+                            mode=mode,
+                            response=response,
+                            exception=e,
+                            failed_attempts=failed_attempts,
+                        )
+                    except AttributeError:
+                        logger.debug(
+                            "Provider reask handler could not inspect streaming response; "
+                            "falling back to a generic retry prompt."
+                        )
+                        kwargs = _build_streaming_reask_kwargs(kwargs, e)
                     raise e
                 except Exception as e:
                     # Emit completion:error for non-validation errors (API errors, network errors, etc.)
@@ -431,13 +457,20 @@ async def retry_async(
                                 is_last_attempt=True,
                             )
 
-                    kwargs = handle_reask_kwargs(
-                        kwargs=kwargs,
-                        mode=mode,
-                        response=response,
-                        exception=e,
-                        failed_attempts=failed_attempts,
-                    )
+                    try:
+                        kwargs = handle_reask_kwargs(
+                            kwargs=kwargs,
+                            mode=mode,
+                            response=response,
+                            exception=e,
+                            failed_attempts=failed_attempts,
+                        )
+                    except AttributeError:
+                        logger.debug(
+                            "Provider reask handler could not inspect streaming response; "
+                            "falling back to a generic retry prompt."
+                        )
+                        kwargs = _build_streaming_reask_kwargs(kwargs, e)
                     raise e
                 except Exception as e:
                     # Emit completion:error for non-validation errors (API errors, network errors, etc.)

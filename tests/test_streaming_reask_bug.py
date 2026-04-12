@@ -12,6 +12,8 @@ from typing import Any, Optional
 import pytest
 from pydantic import ValidationError, BaseModel, field_validator
 
+from instructor.core.exceptions import InstructorRetryException
+from instructor.core.retry import retry_sync
 from instructor.mode import Mode
 from instructor.processing.response import handle_reask_kwargs
 
@@ -182,6 +184,72 @@ class TestStreamingReaskBug:
 
         assert "messages" in result
 
+    def test_retry_sync_falls_back_when_reask_handler_cannot_inspect_stream(
+        self, monkeypatch
+    ):
+        """Test that retry handling falls back to a generic prompt for raw streams."""
+
+        from instructor.core import retry as retry_module
+
+        validation_error = create_mock_validation_error()
+        fallback_calls: list[dict[str, Any]] = []
+
+        def fake_process_response(*args, **kwargs):  # noqa: ANN001,ARG001
+            raise validation_error
+
+        def fake_handle_reask_kwargs(
+            kwargs: dict[str, Any],
+            mode: Mode,
+            response: Any,
+            exception: Exception,
+            failed_attempts: list[Any] | None = None,  # noqa: ARG001
+        ) -> dict[str, Any]:
+            del kwargs, mode, exception, failed_attempts
+            if response is not None:
+                raise AttributeError("'Stream' object has no attribute 'choices'")
+            return {"messages": [{"role": "user", "content": "fallback"}]}
+
+        def fake_build_streaming_reask_kwargs(
+            kwargs: dict[str, Any], exception: Exception
+        ) -> dict[str, Any]:
+            fallback_calls.append({"kwargs": kwargs.copy(), "exception": exception})
+            return {
+                **kwargs,
+                "messages": [
+                    *kwargs.get("messages", []),
+                    {"role": "user", "content": "fallback"},
+                ],
+            }
+
+        monkeypatch.setattr(retry_module, "process_response", fake_process_response)
+        monkeypatch.setattr(
+            retry_module, "handle_reask_kwargs", fake_handle_reask_kwargs
+        )
+        monkeypatch.setattr(
+            retry_module,
+            "_build_streaming_reask_kwargs",
+            fake_build_streaming_reask_kwargs,
+        )
+
+        def fake_func(*args, **kwargs):  # noqa: ANN001,ARG001
+            return MockStream()
+
+        with pytest.raises(InstructorRetryException):
+            retry_sync(
+                func=fake_func,
+                response_model=None,
+                args=(),
+                kwargs={
+                    "messages": [{"role": "user", "content": "test"}],
+                    "stream": True,
+                },
+                mode=Mode.TOOLS,
+                max_retries=1,
+            )
+
+        assert fallback_calls
+        assert fallback_calls[0]["kwargs"]["messages"][0]["content"] == "test"
+
 
 @pytest.mark.skipif(
     not pytest.importorskip("openai", reason="openai not installed"),
@@ -204,7 +272,7 @@ class TestStreamingReaskIntegration:
         return instructor.from_openai(OpenAI())
 
     def test_streaming_with_retries_and_failing_validator(self, client):
-        """Test that streaming with retries doesn't crash on validation failure.
+        """Test that streaming validation failures surface without stream crashes.
 
         This test verifies that the reask handler doesn't crash with
         "'Stream' object has no attribute 'choices'" when validation fails
@@ -221,11 +289,8 @@ class TestStreamingReaskIntegration:
             def always_fail(cls, v: str) -> str:  # noqa: ARG003
                 raise ValueError("This validator always fails for testing")
 
-        # This should not crash with AttributeError about Stream.choices
-        # It should raise InstructorRetryException after retries are exhausted
-        from instructor.core.exceptions import InstructorRetryException
-
-        with pytest.raises(InstructorRetryException):
+        # This should not crash with AttributeError about Stream.choices.
+        with pytest.raises(ValidationError):
             list(
                 client.chat.completions.create_partial(
                     model="gpt-4o-mini",

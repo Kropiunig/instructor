@@ -241,7 +241,7 @@ async def process_response_async(
         and issubclass(response_model, PartialBase)
         and stream
     ):
-        # Return the AsyncGenerator directly for streaming Partial responses.
+        # Preserve streaming behavior for `create_partial()`.
         return response_model.from_streaming_response_async(  # type: ignore[return-value,arg-type]
             cast(AsyncGenerator[Any, None], response),
             mode=mode,
@@ -359,12 +359,10 @@ def process_response(
         and issubclass(response_model, PartialBase)
         and stream
     ):
-        # Collect partial stream to surface validation errors inside retry logic.
-        return list(
-            response_model.from_streaming_response(  # type: ignore
-                response,
-                mode=mode,
-            )
+        # Preserve streaming behavior for `create_partial()`.
+        return response_model.from_streaming_response(  # type: ignore[return-value]
+            response,
+            mode=mode,
         )
 
     model = response_model.from_response(  # type: ignore
