@@ -13,7 +13,12 @@ import pytest
 from pydantic import ValidationError, BaseModel, field_validator
 
 from instructor.core.exceptions import InstructorRetryException
-from instructor.core.retry import retry_sync
+from instructor.core.retry import (
+    _build_streaming_reask_kwargs,
+    _handle_reask_kwargs_with_streaming_fallback,
+    _should_fallback_to_streaming_reask,
+    retry_sync,
+)
 from instructor.mode import Mode
 from instructor.processing.response import handle_reask_kwargs
 
@@ -183,6 +188,76 @@ class TestStreamingReaskBug:
         )
 
         assert "messages" in result
+
+    def test_build_streaming_reask_kwargs_preserves_provider_shape(self):
+        """Test that the fallback keeps provider-specific containers when present."""
+        exception = create_mock_validation_error()
+
+        gemini_kwargs = {
+            "contents": [{"role": "user", "parts": ["test"]}],
+            "tools": [{"type": "function", "function": {"name": "test"}}],
+        }
+        gemini_result = _build_streaming_reask_kwargs(gemini_kwargs, exception)
+
+        assert "contents" in gemini_result
+        assert "messages" not in gemini_result
+        assert gemini_result["contents"][-1]["role"] == "user"
+        assert gemini_result["contents"][-1]["parts"][0].startswith(
+            "Validation Error found:\n"
+        )
+        assert (
+            "Recall the function correctly, fix the errors"
+            in gemini_result["contents"][-1]["parts"][0]
+        )
+
+        cohere_kwargs = {
+            "chat_history": [{"role": "user", "message": "prior"}],
+            "message": "current",
+        }
+        cohere_result = _build_streaming_reask_kwargs(cohere_kwargs, exception)
+
+        assert "chat_history" in cohere_result
+        assert "messages" not in cohere_result
+        assert cohere_result["chat_history"][-1] == {
+            "role": "user",
+            "message": "current",
+        }
+        assert cohere_result["message"].startswith("Validation Error found:\n")
+
+    def test_streaming_fallback_helper_rejects_unrelated_attribute_error(
+        self, monkeypatch
+    ):
+        """Test that only the known stream-inspection AttributeError uses the fallback."""
+        from instructor.core import retry as retry_module
+
+        validation_error = create_mock_validation_error()
+
+        def fake_handle_reask_kwargs(
+            kwargs: dict[str, Any],
+            mode: Mode,
+            response: Any,
+            exception: Exception,
+            failed_attempts: list[Any] | None = None,
+        ) -> dict[str, Any]:
+            del kwargs, mode, response, exception, failed_attempts
+            raise AttributeError("'Stream' object has no attribute 'something_else'")
+
+        monkeypatch.setattr(
+            retry_module, "handle_reask_kwargs", fake_handle_reask_kwargs
+        )
+
+        with pytest.raises(AttributeError, match="something_else"):
+            _handle_reask_kwargs_with_streaming_fallback(
+                kwargs={"messages": [{"role": "user", "content": "test"}]},
+                mode=Mode.TOOLS,
+                response=MockStream(),
+                exception=validation_error,
+            )
+
+        assert not _should_fallback_to_streaming_reask(
+            AttributeError("'Stream' object has no attribute 'something_else'"),
+            MockStream(),
+        )
 
     def test_retry_sync_falls_back_when_reask_handler_cannot_inspect_stream(
         self, monkeypatch

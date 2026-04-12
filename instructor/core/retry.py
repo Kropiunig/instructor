@@ -145,23 +145,94 @@ def extract_messages(kwargs: dict[str, Any]) -> Any:
     return []
 
 
+def _build_streaming_retry_prompt(exception: Exception) -> str:
+    return (
+        f"Validation Error found:\n{exception}\n"
+        "Recall the function correctly, fix the errors"
+    )
+
+
 def _build_streaming_reask_kwargs(
     kwargs: dict[str, Any], exception: Exception
 ) -> dict[str, Any]:
     """Build a generic retry prompt when the provider-specific reask path cannot inspect a stream."""
     kwargs_copy = kwargs.copy()
+
+    retry_prompt = _build_streaming_retry_prompt(exception)
+
+    if "contents" in kwargs_copy:
+        contents = kwargs_copy.get("contents")
+        if isinstance(contents, list):
+            contents_copy = contents.copy()
+        elif contents is None:
+            contents_copy = []
+        else:
+            contents_copy = list(contents)
+
+        contents_copy.append({"role": "user", "parts": [retry_prompt]})
+        kwargs_copy["contents"] = contents_copy
+        return kwargs_copy
+
+    if "chat_history" in kwargs_copy or "message" in kwargs_copy:
+        chat_history = kwargs_copy.get("chat_history")
+        if isinstance(chat_history, list):
+            chat_history_copy = chat_history.copy()
+        elif chat_history is None:
+            chat_history_copy = []
+        else:
+            chat_history_copy = list(chat_history)
+
+        message = kwargs_copy.get("message")
+        if message is not None:
+            chat_history_copy.append({"role": "user", "message": message})
+
+        kwargs_copy["chat_history"] = chat_history_copy
+        kwargs_copy["message"] = retry_prompt
+        return kwargs_copy
+
     messages = list(extract_messages(kwargs_copy))
-    messages.append(
-        {
-            "role": "user",
-            "content": (
-                f"Validation Error found:\n{exception}\n"
-                "Recall the function correctly, fix the errors"
-            ),
-        }
-    )
+    messages.append({"role": "user", "content": retry_prompt})
     kwargs_copy["messages"] = messages
     return kwargs_copy
+
+
+def _should_fallback_to_streaming_reask(exception: Exception, response: Any) -> bool:
+    """Return True when a provider reask handler failed because it inspected a stream."""
+    if not isinstance(exception, AttributeError):
+        return False
+
+    if getattr(exception, "name", None) not in {"choices", "output"}:
+        message = str(exception)
+        if "choices" not in message and "output" not in message:
+            return False
+
+    response_type = type(response).__name__.lower() if response is not None else ""
+    return "stream" in response_type
+
+
+def _handle_reask_kwargs_with_streaming_fallback(
+    kwargs: dict[str, Any],
+    mode: Mode,
+    response: Any,
+    exception: Exception,
+    failed_attempts: list[Any] | None = None,
+) -> dict[str, Any]:
+    try:
+        return handle_reask_kwargs(
+            kwargs=kwargs,
+            mode=mode,
+            response=response,
+            exception=exception,
+            failed_attempts=failed_attempts,
+        )
+    except AttributeError as e:
+        if _should_fallback_to_streaming_reask(e, response):
+            logger.debug(
+                "Provider reask handler could not inspect streaming response; "
+                "falling back to a generic retry prompt."
+            )
+            return _build_streaming_reask_kwargs(kwargs, exception)
+        raise
 
 
 def retry_sync(
@@ -271,20 +342,13 @@ def retry_sync(
                                 is_last_attempt=True,
                             )
 
-                    try:
-                        kwargs = handle_reask_kwargs(
-                            kwargs=kwargs,
-                            mode=mode,
-                            response=response,
-                            exception=e,
-                            failed_attempts=failed_attempts,
-                        )
-                    except AttributeError:
-                        logger.debug(
-                            "Provider reask handler could not inspect streaming response; "
-                            "falling back to a generic retry prompt."
-                        )
-                        kwargs = _build_streaming_reask_kwargs(kwargs, e)
+                    kwargs = _handle_reask_kwargs_with_streaming_fallback(
+                        kwargs=kwargs,
+                        mode=mode,
+                        response=response,
+                        exception=e,
+                        failed_attempts=failed_attempts,
+                    )
                     raise e
                 except Exception as e:
                     # Emit completion:error for non-validation errors (API errors, network errors, etc.)
@@ -457,20 +521,13 @@ async def retry_async(
                                 is_last_attempt=True,
                             )
 
-                    try:
-                        kwargs = handle_reask_kwargs(
-                            kwargs=kwargs,
-                            mode=mode,
-                            response=response,
-                            exception=e,
-                            failed_attempts=failed_attempts,
-                        )
-                    except AttributeError:
-                        logger.debug(
-                            "Provider reask handler could not inspect streaming response; "
-                            "falling back to a generic retry prompt."
-                        )
-                        kwargs = _build_streaming_reask_kwargs(kwargs, e)
+                    kwargs = _handle_reask_kwargs_with_streaming_fallback(
+                        kwargs=kwargs,
+                        mode=mode,
+                        response=response,
+                        exception=e,
+                        failed_attempts=failed_attempts,
+                    )
                     raise e
                 except Exception as e:
                     # Emit completion:error for non-validation errors (API errors, network errors, etc.)
