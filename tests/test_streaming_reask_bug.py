@@ -7,6 +7,8 @@ because they expect a ChatCompletion but receive a Stream object.
 GitHub Issue: https://github.com/jxnl/instructor/issues/1991
 """
 
+import sys
+import types
 from typing import Any, Optional
 
 import pytest
@@ -223,6 +225,103 @@ class TestStreamingReaskBug:
             "message": "current",
         }
         assert cohere_result["message"].startswith("Validation Error found:\n")
+
+    def test_build_streaming_reask_kwargs_preserves_google_genai_content_type(
+        self, monkeypatch
+    ):
+        exception = create_mock_validation_error()
+
+        class FakeGenAIContent:
+            __module__ = "google.genai.types"
+
+            def __init__(self, role: str, parts: list[Any]) -> None:
+                self.role = role
+                self.parts = parts
+
+        class FakeGenAIPart:
+            __module__ = "google.genai.types"
+
+            @classmethod
+            def from_text(cls, *, text: str) -> dict[str, str]:
+                return {"text": text}
+
+        google_module = types.ModuleType("google")
+        genai_module = types.ModuleType("google.genai")
+        genai_types_module = types.ModuleType("google.genai.types")
+        genai_types_module.Content = FakeGenAIContent
+        genai_types_module.Part = FakeGenAIPart
+        genai_module.types = genai_types_module
+        google_module.genai = genai_module
+
+        monkeypatch.setitem(sys.modules, "google", google_module)
+        monkeypatch.setitem(sys.modules, "google.genai", genai_module)
+        monkeypatch.setitem(sys.modules, "google.genai.types", genai_types_module)
+
+        result = _build_streaming_reask_kwargs(
+            {"contents": [FakeGenAIContent(role="user", parts=[{"text": "prior"}])]},
+            exception,
+        )
+
+        appended = result["contents"][-1]
+        assert isinstance(appended, FakeGenAIContent)
+        assert appended.role == "user"
+        assert appended.parts == [
+            {
+                "text": (
+                    "Validation Error found:\n"
+                    f"{exception}\n"
+                    "Recall the function correctly, fix the errors"
+                )
+            }
+        ]
+
+    def test_build_streaming_reask_kwargs_preserves_vertexai_content_type(
+        self, monkeypatch
+    ):
+        exception = create_mock_validation_error()
+
+        class FakeVertexPart:
+            __module__ = "vertexai.generative_models"
+
+            @classmethod
+            def from_text(cls, text: str) -> dict[str, str]:
+                return {"text": text}
+
+        class FakeVertexContent:
+            __module__ = "vertexai.generative_models"
+
+            def __init__(self, role: str, parts: list[Any]) -> None:
+                self.role = role
+                self.parts = parts
+
+        vertexai_module = types.ModuleType("vertexai")
+        generative_models_module = types.ModuleType("vertexai.generative_models")
+        generative_models_module.Part = FakeVertexPart
+        generative_models_module.Content = FakeVertexContent
+        vertexai_module.generative_models = generative_models_module
+
+        monkeypatch.setitem(sys.modules, "vertexai", vertexai_module)
+        monkeypatch.setitem(
+            sys.modules, "vertexai.generative_models", generative_models_module
+        )
+
+        result = _build_streaming_reask_kwargs(
+            {"contents": [FakeVertexContent(role="user", parts=[{"text": "prior"}])]},
+            exception,
+        )
+
+        appended = result["contents"][-1]
+        assert isinstance(appended, FakeVertexContent)
+        assert appended.role == "user"
+        assert appended.parts == [
+            {
+                "text": (
+                    "Validation Error found:\n"
+                    f"{exception}\n"
+                    "Recall the function correctly, fix the errors"
+                )
+            }
+        ]
 
     def test_streaming_fallback_helper_rejects_unrelated_attribute_error(
         self, monkeypatch

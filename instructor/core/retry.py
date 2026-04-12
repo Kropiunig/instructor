@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
 from json import JSONDecodeError
 from typing import Any, Callable, TypeVar
@@ -152,6 +153,39 @@ def _build_streaming_retry_prompt(exception: Exception) -> str:
     )
 
 
+def _append_streaming_retry_content(contents: list[Any], retry_prompt: str) -> None:
+    sample = next((item for item in contents if item is not None), None)
+    module_name = getattr(type(sample), "__module__", "") if sample is not None else ""
+
+    if module_name.startswith("google.genai"):
+        try:
+            genai_types = importlib.import_module("google.genai.types")
+            contents.append(
+                genai_types.Content(
+                    role="user",
+                    parts=[genai_types.Part.from_text(text=retry_prompt)],
+                )
+            )
+            return
+        except Exception:
+            pass
+
+    if module_name.startswith("vertexai."):
+        try:
+            gm = importlib.import_module("vertexai.generative_models")
+            contents.append(
+                gm.Content(
+                    role="user",
+                    parts=[gm.Part.from_text(retry_prompt)],
+                )
+            )
+            return
+        except Exception:
+            pass
+
+    contents.append({"role": "user", "parts": [retry_prompt]})
+
+
 def _build_streaming_reask_kwargs(
     kwargs: dict[str, Any], exception: Exception
 ) -> dict[str, Any]:
@@ -187,35 +221,7 @@ def _build_streaming_reask_kwargs(
         else:
             contents_copy = list(contents)
 
-        # Preserve the contents item type when possible (optional deps).
-        sample = next((c for c in contents_copy if c is not None), None)
-        module = getattr(type(sample), "__module__", "") if sample is not None else ""
-
-        if module.startswith("google.genai."):
-            try:
-                from google.genai import types  # type: ignore[import-not-found]
-
-                contents_copy.append(
-                    types.Content(
-                        role="user",
-                        parts=[types.Part.from_text(text=retry_prompt)],
-                    )
-                )
-            except Exception:
-                contents_copy.append({"role": "user", "parts": [retry_prompt]})
-        elif module.startswith("vertexai."):
-            try:
-                import vertexai.generative_models as gm  # type: ignore[import-not-found]
-
-                contents_copy.append(
-                    gm.Content(role="user", parts=[gm.Part.from_text(retry_prompt)])
-                )
-            except Exception:
-                contents_copy.append({"role": "user", "parts": [retry_prompt]})
-        else:
-            # Gemini (dict) and safe fallback for unknown content types.
-            contents_copy.append({"role": "user", "parts": [retry_prompt]})
-
+        _append_streaming_retry_content(contents_copy, retry_prompt)
         kwargs_copy["contents"] = contents_copy
         return kwargs_copy
 
