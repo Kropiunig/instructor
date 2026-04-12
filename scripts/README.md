@@ -4,6 +4,24 @@ This directory contains utility scripts for maintaining and improving the Instru
 
 ## Available Scripts
 
+### 0. `benchmark_imports.py` - Import Cost Benchmark
+
+**Purpose**: Measures import-time wall clock, RSS, and loaded module count in fresh Python subprocesses.
+
+**What it does**:
+- Runs each target import in a clean subprocess so previous imports do not pollute the result
+- Reports average/min/max import time, RSS, and loaded module count
+- Defaults to the module set discussed in issue `#2205`: `sys`, `openai`, `google.genai`, and `instructor`
+
+**Usage**:
+```bash
+# Run the default comparison set
+uv run python scripts/benchmark_imports.py
+
+# Benchmark specific modules once and emit JSON
+uv run python scripts/benchmark_imports.py --repeat 1 --json sys instructor
+```
+
 ### 1. `make_clean.py` - Markdown File Cleaner
 
 **Purpose**: Cleans markdown files by removing special whitespace characters and replacing em dashes with regular dashes.
