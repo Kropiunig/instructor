@@ -206,7 +206,7 @@ def create_from_file(
     if hyperparameters_dict:
         additional_params["hyperparameters"] = hyperparameters_dict
     if validation_file:
-        additional_params["validation_file"] = validation_file
+        additional_params["validation_file"] = validation_file_id
     if model_suffix:
         additional_params["suffix"] = model_suffix
 
